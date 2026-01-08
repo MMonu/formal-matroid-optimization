@@ -79,6 +79,42 @@ theorem GreedySelect.sublist {α : Type*} [DecidableEq α] (P : Finset α → Bo
     · simp [if_neg h, ih]
 
 open List in
+example {α : Type*} (lst : List α) {h : lst ≠ []} : lst = lst.head h :: lst.tail := by
+  exact Eq.symm (cons_head_tail h)
+
+open List in
+theorem rtake_eq_getElem_cons {α : Type*} {lst : List α} {n : ℕ} (hn : n < lst.length) :
+    lst.rtake (lst.length - n) = lst[n] :: lst.rtake (lst.length - n - 1) := by
+  simp only [rtake.eq_1]
+  rw [Nat.sub_sub_self <| by omega]
+  rw [← tsub_add_eq_tsub_tsub_swap lst.length 1 n]
+  rw [Nat.sub_sub_self <| by omega, add_comm]
+  exact drop_eq_getElem_cons hn
+
+open List in
+theorem rtake_eq_getElem_cons' {α : Type*} {lst : List α} {n : ℕ} (hn : n < lst.length) :
+    lst.rtake (n + 1) = lst[lst.length - 1 - n ]'(by omega) :: lst.rtake (n) := by
+  have : lst.length - 1 - n < lst.length := by omega
+  have := rtake_eq_getElem_cons (by omega)
+  have h1 : (lst.length - (lst.length - 1 - n)) = n + 1 := by omega
+  have h2 : (lst.length - (lst.length - 1 - n) - 1) = n := by omega
+  rw [h2, h1] at this
+  assumption
+
+open List in
+theorem GreedySelect_monotone {α : Type*} [DecidableEq α] (P : Finset α → Bool) {lst : List α}
+    {n : ℕ} (hn : n < lst.length) :
+    GreedySelect P (lst.rtake n) <+ GreedySelect P (lst.rtake (n + 1)) := by
+  rw [rtake_eq_getElem_cons' hn]
+  simp only [GreedySelect]
+  by_cases hP : P (insert lst[lst.length - 1 - n] (GreedySelect P (lst.rtake n)).toFinset)
+  · rw [if_pos hP]
+    exact sublist_cons_self lst[lst.length - 1 - n] (GreedySelect P (lst.rtake n))
+  · rw [if_neg hP]
+
+
+
+open List in
 theorem GreedySelect.monotone {α : Type*} [DecidableEq α] (P : Finset α → Bool) (lst : List α)
   {n : ℕ} (hn : n + 1 ≤ lst.length) : GreedySelect P (lst.rtake n) <+ GreedySelect P
   (lst.rtake (n + 1)) := by
@@ -180,8 +216,6 @@ theorem GreedySelect.sublist' {α : Type*} [DecidableEq α] (P : Finset α → B
       have : xs.length = (x :: xs).length - 1 := by rw [length_cons]; exact Nat.eq_sub_of_add_eq rfl
       rw [this, Nat.le_sub_one_iff_lt (by exact Nat.zero_lt_succ xs.length)]
       exact Nat.lt_of_le_of_ne hn hn'
-
-#check List.Nodup
 
 open List in
 theorem GreedySelect.select_iff {α : Type*} [DecidableEq α] {P : Finset α → Bool} {lst : List α}
