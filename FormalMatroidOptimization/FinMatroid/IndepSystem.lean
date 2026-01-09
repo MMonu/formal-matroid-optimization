@@ -1,11 +1,5 @@
 import Mathlib.Combinatorics.Matroid.Basic
 import Mathlib.Combinatorics.Matroid.IndepAxioms
-import Mathlib.Data.List.Sort
-import Mathlib.Data.List.Basic
-import Mathlib.Data.List.DropRight
-import Mathlib.Data.List.TakeDrop
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.List.Sublists
 import Mathlib.Tactic
 
 def IndepSystem.HereditaryProperty {α : Type*} (P : Finset α → Bool) : Prop :=
@@ -38,21 +32,15 @@ noncomputable def FinMatroid.toMatroid {α : Type*} [DecidableEq α] (M : FinMat
     (Indep') (?_) (?_) (?_) (?_))
   · simp [Indep', M.indep_empty]
   · intro I J ⟨hJ_Fin, hJ_Indep⟩ hIJ
-    have hI_Fin : I.Finite := by exact Set.Finite.subset hJ_Fin hIJ
-    use hI_Fin
-    have : hI_Fin.toFinset ⊆ hJ_Fin.toFinset := Set.Finite.toFinset_subset_toFinset.mpr hIJ
-    exact M.indep_subset hJ_Indep this
+    have hI_Fin := Set.Finite.subset hJ_Fin hIJ
+    exact ⟨hI_Fin, M.indep_subset hJ_Indep (Set.Finite.toFinset_subset_toFinset.mpr hIJ)⟩
   · intro I J ⟨hI_Fin, hI_Indep⟩ ⟨hJ_Fin, hJ_Indep⟩ hcard
     have : hI_Fin.toFinset.card < hJ_Fin.toFinset.card := by
       rwa [← Set.ncard_eq_toFinset_card I hI_Fin, ← Set.ncard_eq_toFinset_card J hJ_Fin]
     obtain ⟨x, hxJ, hxI, hx⟩ := M.indep_aug hJ_Indep hI_Indep this
-    use x
-    constructor
-    · exact (Set.Finite.mem_toFinset hJ_Fin).mp hxJ
-    · constructor
-      · rwa [← Set.Finite.mem_toFinset hI_Fin]
-      · have hxI' : (insert x I).Finite := by exact Set.finite_insert.mpr hI_Fin
-        use hxI'
-        rwa [Set.Finite.toFinset_insert hxI']
+    refine ⟨x, (Set.Finite.mem_toFinset hJ_Fin).mp hxJ, ?_, ?_⟩
+    · rwa [← Set.Finite.mem_toFinset hI_Fin]
+    · have hxI' : (insert x I).Finite := Set.finite_insert.mpr hI_Fin
+      exact ⟨hxI', by rwa [Set.Finite.toFinset_insert]⟩
   · intro I ⟨hI_Fin, hI_Indep⟩
     exact Set.Finite.toFinset_subset.mp (M.subset_ground hI_Indep)
