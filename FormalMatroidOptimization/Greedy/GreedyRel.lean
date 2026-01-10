@@ -35,19 +35,62 @@ def select {α : Type*} [DecidableEq α] (P : Finset α → Bool) (lst : List α
     [DecidableRel r] [IsTotal α r] [IsTrans α r] :
     List α := Greedy.select P (lst.mergeSort (fun x y ↦ r x y))
 
-noncomputable def select_cost {α β : Type*} [hα : DecidableEq α] [LinearOrder β]
-    (P : Finset α → Bool) (lst : List α) (c : α → β) :
-    List α := @select α hα P lst (fun x y ↦ c x ≤ c y) (Classical.decRel (fun x y ↦ c x ≤ c y))
-    (Order.Preimage.instIsTotal) (Order.Preimage.instIsTrans)
-
-theorem pairwise {α : Type*} [DecidableEq α] (P : Finset α → Bool) (lst : List α) (r : α → α → Prop)
-    [DecidableRel r] [IsTotal α r] [IsTrans α r] :
+theorem select_pairwise {α : Type*} [DecidableEq α] (P : Finset α → Bool) (lst : List α)
+    (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r] :
     List.Pairwise r (select P lst r) := by
   unfold select
   refine List.Pairwise.sublist Greedy.select_sublist ?_
   exact List.pairwise_mergeSort' r lst
 
-theorem pairwise_cost {α β : Type*} [hα : DecidableEq α] [LinearOrder β] (P : Finset α → Bool)
+#check Finset.choose
+
+-- def select'_internal {α β : Type*} [hα : DecidableEq α] [LinearOrder β] (P : Finset α → Bool)
+--     (X : Finset α) (Y : Finset α) (c : α → β) : Finset α :=
+--   if h : ∃ x ∈ X \ Y, P (insert x Y) then
+--     have : ∃ x ∈ X \ Y, P (insert x Y) ∧ ∀ y ∈ X \ Y, P (insert y Y) → c x ≤ c y := by sorry
+--     have : {x ∈ X \ Y| P (insert x Y) ∧ ∀ y ∈ X \ Y, P (insert y Y) → c x ≤ c y}.Nonempty := by
+--       obtain ⟨x, hx⟩ := this
+--       use x
+--       simp only [Finset.mem_filter, hx.left, hx.right.left, true_and]
+--       exact hx.right.right
+--     let Z := {x ∈ X \ Y| P (insert x Y) ∧ ∀ y ∈ X \ Y, P (insert y Y) → c x ≤ c y}
+--     have : Z.toList ≠ [] := by
+--       simp; rw [← ne_eq Z ∅, ← Finset.nonempty_iff_ne_empty]; simp only [Z, this]
+--     let z := Z.toList.head this
+--     select'_internal P (X.erase z) (insert z Y) c
+--   else
+--     Y
+
+def select' {α β : Type*} [hα : DecidableEq α] [LinearOrder β] (P : Finset α → Bool)
+    (s : Finset α) (t : Finset α) (c : α → β) : Finset α :=
+  if s.Nonempty then
+    if h : ∃ x ∈ s \ t, P (insert x t) then
+      have : ∃ x ∈ s \ t, P (insert x t) ∧ ∀ y ∈ s \ t, P (insert y t) → c x ≤ c y := by sorry
+      have : {x ∈ s \ t | P (insert x t) ∧ ∀ y ∈ s \ t, P (insert y t) → c x ≤ c y}.Nonempty := by
+        obtain ⟨x, hx⟩ := this
+        use x
+        simp only [Finset.mem_filter, hx.left, hx.right.left, true_and]
+        exact hx.right.right
+      let Z := {x ∈ s \ t| P (insert x t) ∧ ∀ y ∈ s \ t, P (insert y t) → c x ≤ c y}
+      have : Z.toList ≠ [] := by
+        simp; rw [← ne_eq Z ∅, ← Finset.nonempty_iff_ne_empty]; simp only [Z, this]
+      let z := Z.toList.head this
+      select' P (s.erase z) (insert z t) c
+    else
+      s
+  else
+    ∅
+  termination_by
+    s.card
+  decreasing_by
+    sorry
+
+noncomputable def select_cost {α β : Type*} [hα : DecidableEq α] [LinearOrder β]
+    (P : Finset α → Bool) (lst : List α) (c : α → β) :
+    List α := @select α hα P lst (fun x y ↦ c x ≤ c y) (Classical.decRel (fun x y ↦ c x ≤ c y))
+    (Order.Preimage.instIsTotal) (Order.Preimage.instIsTrans)
+
+theorem select_pairwise_cost {α β : Type*} [hα : DecidableEq α] [LinearOrder β] (P : Finset α → Bool)
     (lst : List α) (c : α → β) :
     List.Pairwise (· ≤ ·) ((select_cost P lst c).map c) := by
   apply @List.Pairwise.map β α (fun x y ↦ c x ≤ c y)
