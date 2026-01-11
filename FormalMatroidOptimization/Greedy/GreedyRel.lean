@@ -61,7 +61,7 @@ theorem select_pairwise {α : Type*} [DecidableEq α] (P : Finset α → Bool) (
 --   else
 --     Y
 
-def select' {α β : Type*} [hα : DecidableEq α] [LinearOrder β] (P : Finset α → Bool)
+noncomputable def select' {α β : Type*} [hα : DecidableEq α] [LinearOrder β] (P : Finset α → Bool)
     (s : Finset α) (t : Finset α) (c : α → β) : Finset α :=
   if s.Nonempty then
     if h : ∃ x ∈ s \ t, P (insert x t) then

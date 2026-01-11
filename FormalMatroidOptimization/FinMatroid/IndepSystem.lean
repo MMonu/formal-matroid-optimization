@@ -2,17 +2,17 @@ import Mathlib.Combinatorics.Matroid.Basic
 import Mathlib.Combinatorics.Matroid.IndepAxioms
 import Mathlib.Tactic
 
-def IndepSystem.HereditaryProperty {α : Type*} (P : Finset α → Bool) : Prop :=
+def IndepSystem.HereditaryProperty {α : Type*} (P : Finset α → Prop) : Prop :=
   ∀ ⦃X Y⦄, P X → Y ⊆ X → P Y
 
-def IndepSystem.AugmentationProperty {α : Type*} [DecidableEq α] (P : Finset α → Bool) : Prop :=
+def IndepSystem.AugmentationProperty {α : Type*} [DecidableEq α] (P : Finset α → Prop) : Prop :=
   ∀ ⦃X Y⦄, P X → P Y → X.card > Y.card → ∃ x ∈ X, x ∉ Y ∧ P (insert x Y)
 
 structure IndepSystem (α : Type*) where
   /-- Independent system has a ground set `E` -/
   (E : Finset α)
   /-- Independent system has a predicate `Indep` defining its independent sets -/
-  (Indep : Finset α → Bool)
+  (Indep : Finset α → Prop)
   /-- The empty set is `Indep`endent -/
   (indep_empty : Indep ∅)
   /-- For any `Indep`endent set `X`, all its subsets are also `Indep`endent -/
@@ -25,7 +25,7 @@ structure FinMatroid (α : Type*) [DecidableEq α] extends IndepSystem α where
   `X` not in `Y` with `Y ∪ {x}` `Indep`endent -/
   (indep_aug : IndepSystem.AugmentationProperty Indep)
 
-noncomputable def FinMatroid.toMatroid {α : Type*} [DecidableEq α] (M : FinMatroid α) :
+def FinMatroid.toMatroid {α : Type*} [DecidableEq α] (M : FinMatroid α) :
   Matroid α := by
   let Indep' (X : Set α) : Prop := ∃ hX : X.Finite, M.Indep hX.toFinset
   refine IndepMatroid.matroid (IndepMatroid.ofFinite (M.E.finite_toSet)
@@ -44,3 +44,8 @@ noncomputable def FinMatroid.toMatroid {α : Type*} [DecidableEq α] (M : FinMat
       exact ⟨hxI', by rwa [Set.Finite.toFinset_insert]⟩
   · intro I ⟨hI_Fin, hI_Indep⟩
     exact Set.Finite.toFinset_subset.mp (M.subset_ground hI_Indep)
+
+lemma FinIndep_iff_Indep {α : Type*} [DecidableEq α] (M : FinMatroid α) (I : Finset α) :
+  M.Indep I ↔ M.toMatroid.Indep I := by
+  have : M.toMatroid.Indep I ↔ ∃ hI : (I : Set α).Finite, M.Indep hI.toFinset := Iff.rfl
+  simp_all only [Set.toFinite_toFinset, Finset.toFinset_coe, exists_const, Finset.finite_toSet]
