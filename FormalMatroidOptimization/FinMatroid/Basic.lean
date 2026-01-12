@@ -2,17 +2,19 @@ import Mathlib.Combinatorics.Matroid.Basic
 import Mathlib.Combinatorics.Matroid.IndepAxioms
 import Mathlib.Tactic
 
-def IndepSystem.HereditaryProperty {α : Type*} (P : Finset α → Bool) : Prop :=
+def IndepSystem.HereditaryProperty {α : Type*} (P : Finset α → Prop) : Prop :=
   ∀ ⦃X Y⦄, P X → Y ⊆ X → P Y
 
-def IndepSystem.AugmentationProperty {α : Type*} [DecidableEq α] (P : Finset α → Bool) : Prop :=
+def IndepSystem.AugmentationProperty {α : Type*} [DecidableEq α] (P : Finset α → Prop) : Prop :=
   ∀ ⦃X Y⦄, P X → P Y → X.card > Y.card → ∃ x ∈ X, x ∉ Y ∧ P (insert x Y)
 
 structure IndepSystem (α : Type*) where
   /-- Independent system has a ground set `E` -/
   (E : Finset α)
   /-- Independent system has a predicate `Indep` defining its independent sets -/
-  (Indep : Finset α → Bool)
+  (Indep : Finset α → Prop)
+  /-- `Indep` should be decidable -/
+  (inde_dec : DecidablePred Indep)
   /-- The empty set is `Indep`endent -/
   (indep_empty : Indep ∅)
   /-- For any `Indep`endent set `X`, all its subsets are also `Indep`endent -/
