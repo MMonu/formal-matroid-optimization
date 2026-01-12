@@ -38,10 +38,7 @@ theorem selectRel_internal_subset {α : Type*} [DecidableEq α] (P : Finset α �
     ys ⊆ selectRel_internal P r xs ys := by
   match xs with
   | [] =>
-    rw [selectRel_internal.eq_def]
-    set sP := filter (fun x ↦ decide (P (insert x ys.toFinset))) [] with hsP₁
-    rw [dif_neg (by simp [hsP₁])]
-    simp
+    grind [selectRel_internal]
   | x :: xs =>
     rw [selectRel_internal.eq_def]
     set sP := filter (fun x ↦ decide (P (insert x ys.toFinset))) (x :: xs) with hsP₁
@@ -61,9 +58,7 @@ theorem selectRel_internal_indep {α : Type*} [DecidableEq α] (P : Finset α �
     (hys : P ys.toFinset) : P (selectRel_internal P r xs ys).toFinset := by
     match xs with
   | [] =>
-    rw [selectRel_internal.eq_def]
-    set sP := filter (fun x ↦ decide (P (insert x ys.toFinset))) [] with hsP₁
-    rwa [dif_neg (by simp [hsP₁])]
+    grind [selectRel_internal]
   | x :: xs =>
     rw [selectRel_internal.eq_def]
     set sP := filter (fun x ↦ decide (P (insert x ys.toFinset))) (x :: xs) with hsP₁
@@ -87,7 +82,7 @@ theorem selectRel_internal_with_max {α : Type*} [DecidableEq α] (P : Finset α
     if P (insert x ys.toFinset) then
       selectRel_internal P r (x :: xs) ys = selectRel_internal P r xs (x :: ys)
     else
-      selectRel_internal P r (x :: xs) ys = (selectRel_internal P r xs ys)
+      selectRel_internal P r (x :: xs) ys = selectRel_internal P r xs ys
     := by
   rw [selectRel_internal]
   set sP := filter (fun x ↦ decide (P (insert x ys.toFinset))) (x :: xs) with hsP₁
@@ -121,5 +116,21 @@ theorem selectRel_internal_with_max {α : Type*} [DecidableEq α] (P : Finset α
     xs.length
   decreasing_by
     grind [List.maxRel_mem]
+
+theorem selectRel_with_max {α : Type*} [DecidableEq α] (P : Finset α → Prop)
+    [DecidablePred P] (hP : IndepSystem.HereditaryProperty P) (r : α → α → Prop) [DecidableRel r]
+    [IsTotal α r] [IsTrans α r] {x : α} {xs : List α} (h : ∀ y ∈ xs, r y x ∧ ¬r x y) :
+    if P {x} then
+      selectRel P r (x :: xs) = selectRel_internal P r xs [x]
+    else
+      selectRel P r (x :: xs) = selectRel P r xs
+    := by
+  unfold selectRel
+  have := selectRel_internal_with_max P hP r h (ys := [])
+  have h₁ : (insert x [].toFinset) = {x} := by rw [toFinset_nil, insert_empty_eq]
+  rw [h₁] at this
+  by_cases hP₁ : P {x}
+  · rwa [if_pos hP₁] at this ⊢
+  · rwa [if_neg hP₁] at this ⊢
 
 end Greedy
