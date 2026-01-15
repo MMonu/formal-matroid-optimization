@@ -45,7 +45,10 @@ def FinMatroid.toMatroid {α : Type*} [DecidableEq α] (M : FinMatroid α) :
   · intro I ⟨hI_Fin, hI_Indep⟩
     exact Set.Finite.toFinset_subset.mp (M.subset_ground hI_Indep)
 
+lemma toMatroid_FinIndep_iff {α : Type*} [DecidableEq α] (M : FinMatroid α) (I : Set α) :
+  M.toMatroid.Indep I ↔ ∃ hI : (I : Set α).Finite, M.Indep hI.toFinset := Iff.rfl
+
 lemma FinIndep_iff_Indep {α : Type*} [DecidableEq α] (M : FinMatroid α) (I : Finset α) :
   M.Indep I ↔ M.toMatroid.Indep I := by
-  have : M.toMatroid.Indep I ↔ ∃ hI : (I : Set α).Finite, M.Indep hI.toFinset := Iff.rfl
-  simp_all only [Set.toFinite_toFinset, Finset.toFinset_coe, exists_const, Finset.finite_toSet]
+  simp only [toMatroid_FinIndep_iff, Set.toFinite_toFinset, Finset.toFinset_coe,
+  Finset.finite_toSet, exists_const]

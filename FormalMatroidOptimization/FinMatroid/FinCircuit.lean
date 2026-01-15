@@ -19,20 +19,16 @@ def IsFinCircuit {α : Type*} [DecidableEq α] (M : FinMatroid α) :=
 lemma FinCircuit_iff_Circuit {α : Type*} [DecidableEq α] (M : FinMatroid α) (C : Finset α) :
   IsFinCircuit M C ↔ Matroid.IsCircuit M.toMatroid C := by
   constructor
-  · intro ⟨h1, h2⟩
+  · intro ⟨hC_FDep, hC_min⟩
     constructor
-    · exact (FinDep_iff_Dep M C).mp h1
-    · intro D hD DsubC
-      have Dfinite := Set.Finite.subset C.finite_toSet DsubC
-      let Dfin := Dfinite.toFinset
-      --have := (FinDep_iff_Dep M (Dfin)).mpr hD
-      have : Dfin = D := Set.Finite.coe_toFinset Dfinite
-      rw [←this] at hD DsubC ⊢
-      have h := (FinDep_iff_Dep M Dfin).mpr hD
-      exact Set.le_iff_subset.mpr (h2 h DsubC)
-  · intro ⟨h1, h2⟩
+    · exact (FinDep_iff_Dep M C).mp hC_FDep
+    · intro D hD_Dep hDC
+      have D_finite := Set.Finite.subset C.finite_toSet hDC
+      have : D = D_finite.toFinset := Eq.symm (Set.Finite.coe_toFinset D_finite)
+      rw [this] at hD_Dep hDC ⊢
+      exact hC_min ((FinDep_iff_Dep M D_finite.toFinset).mpr hD_Dep) hDC
+  · intro ⟨hC_Dep, hC_min⟩
     constructor
-    · exact (FinDep_iff_Dep M C).mpr h1
-    · intro D hD DsubC
-      have h := (FinDep_iff_Dep M D).mp hD
-      exact Finset.le_iff_subset.mpr (h2 h DsubC)
+    · exact (FinDep_iff_Dep M C).mpr hC_Dep
+    · intro D hD_FDep hDC
+      exact hC_min ((FinDep_iff_Dep M D).mp hD_FDep) hDC
