@@ -27,7 +27,7 @@ structure FinMatroid (α : Type*) [DecidableEq α] extends IndepSystem α where
   `X` not in `Y` with `Y ∪ {x}` `Indep`endent -/
   (indep_aug : IndepSystem.AugmentationProperty Indep)
 
-noncomputable def FinMatroid.toMatroid {α : Type*} [DecidableEq α] (M : FinMatroid α) :
+def FinMatroid.toMatroid {α : Type*} [DecidableEq α] (M : FinMatroid α) :
   Matroid α := by
   let Indep' (X : Set α) : Prop := ∃ hX : X.Finite, M.Indep hX.toFinset
   refine IndepMatroid.matroid (IndepMatroid.ofFinite (M.E.finite_toSet)
@@ -46,3 +46,11 @@ noncomputable def FinMatroid.toMatroid {α : Type*} [DecidableEq α] (M : FinMat
       exact ⟨hxI', by rwa [Set.Finite.toFinset_insert]⟩
   · intro I ⟨hI_Fin, hI_Indep⟩
     exact Set.Finite.toFinset_subset.mp (M.subset_ground hI_Indep)
+
+lemma toMatroid_FinIndep_iff {α : Type*} [DecidableEq α] (M : FinMatroid α) (I : Set α) :
+  M.toMatroid.Indep I ↔ ∃ hI : (I : Set α).Finite, M.Indep hI.toFinset := Iff.rfl
+
+lemma FinIndep_iff_Indep {α : Type*} [DecidableEq α] (M : FinMatroid α) (I : Finset α) :
+  M.Indep I ↔ M.toMatroid.Indep I := by
+  simp only [toMatroid_FinIndep_iff, Set.toFinite_toFinset, Finset.toFinset_coe,
+  Finset.finite_toSet, exists_const]
