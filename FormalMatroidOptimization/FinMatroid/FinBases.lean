@@ -1,7 +1,7 @@
 import Mathlib.Combinatorics.Matroid.Basic
 import Mathlib.Combinatorics.Matroid.IndepAxioms
 import Mathlib.Tactic
-import FormalMatroidOptimization.FinMatroid.IndepSystem
+import FormalMatroidOptimization.FinMatroid.Basic
 
 def IsFinBase {α : Type*} [DecidableEq α] (M : FinMatroid α) :=
   Maximal (M.Indep)

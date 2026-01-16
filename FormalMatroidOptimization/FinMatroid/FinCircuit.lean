@@ -1,7 +1,7 @@
 import Mathlib.Combinatorics.Matroid.Basic
 import Mathlib.Combinatorics.Matroid.IndepAxioms
 import Mathlib.Tactic
-import FormalMatroidOptimization.FinMatroid.IndepSystem
+import FormalMatroidOptimization.FinMatroid.Basic
 
 def FinDep {α : Type*} [DecidableEq α] (M : FinMatroid α) (D : Finset α) :
   Prop := ¬M.Indep D ∧ D ⊆ M.E
