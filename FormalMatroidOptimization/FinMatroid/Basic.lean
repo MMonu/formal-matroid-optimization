@@ -14,7 +14,7 @@ structure IndepSystem (α : Type*) where
   /-- Independent system has a predicate `Indep` defining its independent sets -/
   (Indep : Finset α → Prop)
   /-- `Indep` should be decidable -/
-  (inde_dec : DecidablePred Indep)
+  (indep_dec : DecidablePred Indep)
   /-- The empty set is `Indep`endent -/
   (indep_empty : Indep ∅)
   /-- For any `Indep`endent set `X`, all its subsets are also `Indep`endent -/
