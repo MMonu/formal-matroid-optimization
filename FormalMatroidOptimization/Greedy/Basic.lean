@@ -80,6 +80,40 @@ theorem selectRel_internal_indep {P : Finset α → Prop} [DecidablePred P]
   decreasing_by
     grind [maxRel_mem]
 
+lemma selectRel_internal_maximal {P : Finset α → Prop} [DecidablePred P]
+    {r : α → α → Prop} [DecidableRel r] [IsTotal α r] [IsTrans α r] {xs ys : List α} :
+    ∀ x ∈ xs, x ∉ (Greedy.selectRel_internal P r xs ys).toFinset →
+    ¬ P (insert x (Greedy.selectRel_internal P r xs ys).toFinset) := by
+  match xs with
+  | [] =>
+    grind [selectRel_internal]
+  | x :: xs =>
+    rw [selectRel_internal.eq_def]
+    set sP := filter (fun x ↦ decide (P (insert x ys.toFinset))) (x :: xs) with hsP₁
+    by_cases hsP₂ : sP ≠ []
+    · rw [dif_pos hsP₂]
+      intro x₁ hx₁
+      by_cases hx₁y : x₁ ≠ List.maxRel r sP hsP₂
+      · apply (selectRel_internal_maximal (xs := ((x :: xs).erase (List.maxRel r sP hsP₂)))
+        (ys := ((List.maxRel r sP hsP₂) :: ys)))
+        exact (mem_erase_of_ne hx₁y).mpr hx₁
+      · rw [not_not] at hx₁y
+        set y := List.maxRel r sP hsP₂ with hy
+        have hxin : y ∈ List.maxRel r sP hsP₂ :: ys := mem_cons_self
+        intro h
+        have hys : (y :: ys) ⊆ selectRel_internal P r ((x :: xs).erase y) (y :: ys) := by
+          grind [selectRel_internal_subset]
+        have : x₁ ∈ (selectRel_internal P r ((x :: xs).erase y) (y :: ys)) := by
+          grind only [= subset_def]
+        have : x₁ ∈ (selectRel_internal P r ((x :: xs).erase y) (y :: ys)).toFinset := by
+          exact mem_toFinset.mpr this
+        contradiction
+    · simp_all
+  termination_by
+    xs.length
+  decreasing_by
+    · grind [maxRel_mem]
+
 theorem selectRel_internal_prop
     {P : Finset α → Prop} [DecidablePred P] (hP : IndepSystem.HereditaryProperty P)
     {r : α → α → Prop} [DecidableRel r] [IsTotal α r] [IsTrans α r]

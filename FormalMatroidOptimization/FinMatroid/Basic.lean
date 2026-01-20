@@ -27,6 +27,10 @@ structure FinMatroid (α : Type*) [DecidableEq α] extends IndepSystem α where
   `X` not in `Y` with `Y ∪ {x}` `Indep`endent -/
   (indep_aug : IndepSystem.AugmentationProperty Indep)
 
+def IndepToMatroidUp {α : Type*} [DecidableEq α] (F : IndepSystem α)
+    (h : IndepSystem.AugmentationProperty F.Indep) :
+  FinMatroid α := { toIndepSystem := F, indep_aug := h }
+
 def FinMatroid.toMatroid {α : Type*} [DecidableEq α] (M : FinMatroid α) :
   Matroid α := by
   let Indep' (X : Set α) : Prop := ∃ hX : X.Finite, M.Indep hX.toFinset
@@ -54,3 +58,6 @@ lemma FinIndep_iff_Indep {α : Type*} [DecidableEq α] (M : FinMatroid α) (I : 
   M.Indep I ↔ M.toMatroid.Indep I := by
   simp only [toMatroid_FinIndep_iff, Set.toFinite_toFinset, Finset.toFinset_coe,
   Finset.finite_toSet, exists_const]
+
+def IsFinMatroid {α : Type*} [DecidableEq α] (F : IndepSystem α) [DecidablePred F.Indep] : Prop :=
+  IndepSystem.AugmentationProperty (F.Indep)
