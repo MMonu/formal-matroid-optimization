@@ -43,6 +43,9 @@ structure FinMatroid (α : Type*) [DecidableEq α] extends IndepSystem α where
   `X` not in `Y` with `Y ∪ {x}` `Indep`endent -/
   (indep_aug : IndepSystem.AugmentationProperty Indep)
 
+instance {α : Type*} [DecidableEq α] : Coe (FinMatroid α) (IndepSystem α) :=
+  ⟨FinMatroid.toIndepSystem⟩
+
 def IndepToMatroidUp {α : Type*} [DecidableEq α] (F : IndepSystem α)
     (h : IndepSystem.AugmentationProperty F.Indep) :
   FinMatroid α := { toIndepSystem := F, indep_aug := h }

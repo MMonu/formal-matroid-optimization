@@ -18,6 +18,10 @@ noncomputable def selectRel' {α : Type*} [DecidableEq α] (r : α → α → Pr
 
 def weight {α β : Type*} [AddCommMonoid β] (c : α → β) (X : Finset α) : β := Finset.sum X c
 
+def is_min_weight_base {α β : Type*} [DecidableEq α] [LinearOrder β] [AddCommMonoid β]
+    [IsOrderedAddMonoid β] (F : IndepSystem α) (c : α → β) (B : Finset α) : Prop :=
+    IsFinBase F B ∧ ∀ B', IsFinBase F B' → weight c B' ≤ weight c B
+
 def weightRel {α β : Type*} [LinearOrder β] (c : α → β) := Order.Preimage c (· ≤ ·)
 
 noncomputable instance {α : Type*} (E : Finset α) : Encodable {x // x ∈ E} := Fintype.toEncodable E
@@ -178,6 +182,21 @@ lemma exists_eq_insert_of_card_succ {α : Type*} [DecidableEq α] {X Y : Finset 
     cases h with
     | inl h' => rw [h']; exact hx'.left
     | inr h' => exact hXY h'
+
+open Finset List in
+theorem Matroid_greedy {α : Type*} [Encodable α] (F : IndepSystem α)
+    (h : ∀ β : Type*, [LinearOrder β] → [AddCommMonoid β] → [IsOrderedAddMonoid β] →
+      ∀ c : α → β, is_min_weight_base F c (greedy F c).toFinset) : IsFinMatroid F := by
+  apply IndepSystem.augmentation_of_succ _ F.indep_subset
+  intro Y X hY hX h_card
+  by_cases hYX₁ : X \ Y = ∅
+  · obtain ⟨x, hx⟩ := exists_eq_insert_of_card_succ (sdiff_eq_empty_iff_subset.mp hYX₁) h_card
+    refine ⟨x, hx.left, hx.right.left, by rwa [← hx.right.right]⟩
+  · set u : ℕ := #(X \ Y) + #(Y \ X) with hu
+    set v : ℕ := 2 * #(X \ Y) with hv
+    set c : α → ℕ := fun x ↦ if x ∈ X then u else (if x ∈ Y then v else 0)
+    have huv : v < u := by grind only [usr card_sdiff_add_card_inter, usr card_union_add_card_inter]
+    sorry
 
 open Finset List in
 theorem Matroid_of_Greedy {α β : Type*} [DecidableEq α] [AddCommMonoid β] [LinearOrder β]

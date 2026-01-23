@@ -3,8 +3,8 @@ import Mathlib.Combinatorics.Matroid.IndepAxioms
 import Mathlib.Tactic
 import FormalMatroidOptimization.FinMatroid.Basic
 
-def IsFinBase {α : Type*} [DecidableEq α] (M : FinMatroid α) :=
-  Maximal (M.Indep)
+def IsFinBase {α : Type*} [DecidableEq α] (F : IndepSystem α) :=
+  Maximal (F.Indep)
 
 lemma IsFinBase_iff_IsBase {α : Type*} [DecidableEq α] (M : FinMatroid α) (B : Finset α) :
   IsFinBase M B ↔ Matroid.IsBase M.toMatroid B := by
