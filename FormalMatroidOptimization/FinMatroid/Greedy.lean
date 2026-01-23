@@ -8,8 +8,6 @@ import Mathlib.Order.Minimal
 
 namespace FinMatroid
 
-#check Finset.sort
-
 noncomputable def selectRel {α : Type*} [DecidableEq α] (r : α → α → Prop) [DecidableRel r]
     [IsTotal α r] [IsTrans α r] (F : IndepSystem α) [DecidablePred F.Indep] :
     List α := Greedy.selectRel F.Indep r F.E.toList
@@ -20,36 +18,87 @@ noncomputable def selectRel' {α : Type*} [DecidableEq α] (r : α → α → Pr
 
 def weight {α β : Type*} [AddCommMonoid β] (c : α → β) (X : Finset α) : β := Finset.sum X c
 
-def weight_is_maximum {α β : Type*} [DecidableEq α] [AddCommMonoid β] [LinearOrder β]
-    [IsOrderedAddMonoid β] (F : IndepSystem α) [DecidablePred F.Indep] (c : α → β) (Y : Finset α) :
-    Prop :=
-  ∀ X : Finset α, Maximal F.Indep X → weight c X ≤ weight c Y
+def weightRel {α β : Type*} [LinearOrder β] (c : α → β) := Order.Preimage c (· ≤ ·)
 
-def weightRel {α β : Type*} [AddCommMonoid β] [LinearOrder β] [IsOrderedAddMonoid β] (c : α → β) :
-    α → α → Prop := fun x y ↦ c x ≤ c y
+noncomputable instance {α : Type*} (E : Finset α) : Encodable {x // x ∈ E} := Fintype.toEncodable E
+
+open Encodable in
+def rel_of_encodable_of_rel {α : Type*} [Encodable α] (r : α → α → Prop) : α → α → Prop :=
+  fun a b ↦ r a b ∧ (r b a → encode a ≤ encode b)
+
+instance instTrans {α : Type*} [Encodable α] (r : α → α → Prop) [IsTrans α r] :
+    IsTrans α (rel_of_encodable_of_rel r) where
+  trans := by
+    intro a b c ⟨hab₁, hab₂⟩ ⟨hbc₁, hbc₂⟩
+    simp only [rel_of_encodable_of_rel]
+    refine ⟨trans_of r hab₁ hbc₁, ?_⟩
+    intro hca
+    exact le_trans (hab₂ (trans_of r hbc₁ hca)) (hbc₂ (trans_of r hca hab₁))
+
+open Encodable in
+instance instTotal {α : Type*} [Encodable α] (r : α → α → Prop) [IsTotal α r] :
+    IsTotal α (rel_of_encodable_of_rel r) where
+  total := by
+    intro a b
+    simp only [rel_of_encodable_of_rel]
+    by_cases h : encode a ≤ encode b
+    · by_cases hab : r a b
+      · left; exact ⟨hab, fun _ ↦ h⟩
+      · right; refine ⟨(or_iff_right hab).mp (total_of r a b), by intro hab'; contradiction⟩
+    · have h := le_of_lt (not_le.mp h)
+      by_cases hba : r b a
+      · right; exact ⟨hba, fun _ ↦ h⟩
+      · left; refine ⟨(or_iff_right hba).mp (total_of r b a), by intro hba'; contradiction⟩
+
+open Encodable in
+instance instAntisymm {α : Type*} [Encodable α] (r : α → α → Prop) :
+    IsAntisymm α (rel_of_encodable_of_rel r) where
+  antisymm := by
+    intro a b ⟨hab₁, hab₂⟩ ⟨hba₁, hba₂⟩
+    exact encode_inj.mp (eq_of_le_of_ge (hab₂ hba₁) (hba₂ hab₁))
+
+noncomputable instance instDecidableRel {α : Type*} [Encodable α] (r : α → α → Prop)
+    [DecidableRel r] : DecidableRel (rel_of_encodable_of_rel r) := by
+  unfold rel_of_encodable_of_rel; infer_instance
+
+def weightRel' {α β : Type*} [Encodable α] [LinearOrder β] (c : α → β) :=
+    rel_of_encodable_of_rel (Order.Preimage c (· ≤ ·))
+
+instance weight_instTrans {α β : Type*} [Encodable α] [LinearOrder β] (c : α → β) :
+    IsTotal α (weightRel' c)
+  := by unfold weightRel'; infer_instance
+
+instance weight_instTotal {α β : Type*} [Encodable α] [LinearOrder β] (c : α → β) :
+    IsTrans α (weightRel' c)
+  := by unfold weightRel'; infer_instance
+
+instance weight_instAntisymm {α β : Type*} [Encodable α] [LinearOrder β] (c : α → β) :
+    IsAntisymm α (weightRel' c)
+  := by unfold weightRel'; infer_instance
+
+noncomputable instance weight_instDecidableRel {α β : Type*} [Encodable α] [LinearOrder β]
+    (c : α → β) : DecidableRel (weightRel' c)
+  := by unfold weightRel'; infer_instance
 
 noncomputable section
 
 instance {α β : Type*} [AddCommMonoid β] [LinearOrder β] [IsOrderedAddMonoid β] (c : α → β) :
     DecidableRel (weightRel c) := Classical.decRel (weightRel c)
-
 end
 
-instance {α β : Type*} [AddCommMonoid β] [LinearOrder β] [IsOrderedAddMonoid β] (c : α → β) :
-    IsTotal α (weightRel c) := by
-  refine { total := ?_ }
-  intro a b
-  exact Std.IsLinearPreorder.le_total (c a) (c b)
+local instance {α : Type*} [Encodable α] : DecidableEq α := Encodable.decidableEqOfEncodable α
+instance {α : Type*} {F : IndepSystem α} : DecidablePred F.Indep := F.indep_dec
 
-instance {α β : Type*} [AddCommMonoid β] [LinearOrder β] [IsOrderedAddMonoid β] (c : α → β) :
-    IsTrans α (weightRel c) := by
-  refine { trans := ?_ }
-  intro a b d
-  exact fun a_1 a_2 ↦ Std.IsPreorder.le_trans (c a) (c b) (c d) a_1 a_2
+noncomputable def greedy {α β : Type*} [Encodable α] [LinearOrder β] (F : IndepSystem α)
+    (c : α → β) : List α :=
+  Greedy.selectRel F.Indep (weightRel' c) F.E.toList
 
-noncomputable def Greedy_set {α β : Type*} [DecidableEq α] [AddCommMonoid β] [LinearOrder β]
-    [IsOrderedAddMonoid β] (F : IndepSystem α) [DecidablePred F.Indep] (c : α → β) : Finset α :=
-  (selectRel (weightRel c) (F : IndepSystem α)).toFinset
+lemma greedy_eq {α β : Type*} [Encodable α] [LinearOrder β] (F : IndepSystem α) (c : α → β) :
+    greedy F c = List.Greedy.selectRel F.Indep (weightRel' c) F.E.toList := by
+  rw [greedy, Greedy.selectRel_eq_list_selectRel F.indep_subset (weightRel' c) ?_ ?_]
+  · exact Finset.nodup_toList F.E
+  · intro x y hx hy ⟨h₁, h₂⟩
+    exact antisymm h₁ h₂
 
 /-
 lemma Greedy_maxweight {α : Type*} [DecidableEq α] (M : FinMatroid α) [DecidablePred M.Indep]
@@ -109,12 +158,6 @@ lemma Greedy_maxweight {α : Type*} [DecidableEq α] (M : FinMatroid α) [Decida
 --     --mergeSort_toFinset_eq
 --     sorry
 
-theorem indep {α : Type*} [DecidableEq α] (P : Finset α → Prop) :
-    (∀ X Y, P X → P Y → X.card = Y.card + 1 → ∃ x ∈ X, x ∉ Y ∧ P (insert x Y)) →
-    IndepSystem.AugmentationProperty P := by
-  intro h X Y hX hY hc
-  sorry
-
 lemma exists_eq_insert_of_card_succ {α : Type*} [DecidableEq α] {X Y : Finset α} (hXY : X ⊆ Y)
     (hcard : Y.card = X.card + 1) : ∃ x, x ∈ Y ∧ x ∉ X ∧ Y = insert x X:= by
   have h : (Y \ X).card = 1 := by grind
@@ -139,10 +182,11 @@ lemma exists_eq_insert_of_card_succ {α : Type*} [DecidableEq α] {X Y : Finset 
 open Finset List in
 theorem Matroid_of_Greedy {α β : Type*} [DecidableEq α] [AddCommMonoid β] [LinearOrder β]
     [IsOrderedAddMonoid β] (F : IndepSystem α) [DecidablePred F.Indep]
-    (h : ∀ c : α → ℕ, Maximal F.Indep (Greedy_set F c) ∧ weight_is_maximum F c (Greedy_set F c)) :
-    IsFinMatroid F := by
+    (h : ∀ β : Type*, [AddCommMonoid β] → [LinearOrder β] → [IsOrderedAddMonoid β] →
+      ∀ c : α → β, Maximal F.Indep (selectRel (weightRel c) F).toFinset ∧ ∀ B, Maximal F.Indep B →
+      weight c B ≤ weight c (selectRel (weightRel c) F).toFinset) : IsFinMatroid F := by
   rw [IsFinMatroid]
-  apply indep
+  apply IndepSystem.Augmentation_of_succ _ F.indep_subset
   intro Y X hY hX hcard
   by_cases hXY : X \ Y = ∅
   · have := sdiff_eq_empty_iff_subset.mp hXY

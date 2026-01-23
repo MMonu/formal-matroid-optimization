@@ -8,6 +8,22 @@ def IndepSystem.HereditaryProperty {α : Type*} (P : Finset α → Prop) : Prop 
 def IndepSystem.AugmentationProperty {α : Type*} [DecidableEq α] (P : Finset α → Prop) : Prop :=
   ∀ ⦃X Y⦄, P X → P Y → X.card > Y.card → ∃ x ∈ X, x ∉ Y ∧ P (insert x Y)
 
+open Finset in
+lemma IndepSystem.augmentation_of_succ {α : Type*} [DecidableEq α] (P : Finset α → Prop)
+    (h₁ : IndepSystem.HereditaryProperty P)
+    (h₂ : ∀ ⦃X Y⦄, P X → P Y → #X = #Y + 1 → ∃ x ∈ X, x ∉ Y ∧ P (insert x Y)) :
+    IndepSystem.AugmentationProperty P := by
+  intro X Y
+  refine Finset.induction_on X ?_ ?_
+  · simp
+  · intro z Z hz ih hPzZ hPY hzZY
+    rw [card_insert_of_notMem hz, gt_iff_lt, Nat.lt_add_one_iff_lt_or_eq] at hzZY
+    cases hzZY with
+    | inl h =>
+      obtain ⟨x, hx⟩ := ih (h₁ hPzZ (subset_insert z Z)) hPY h
+      exact ⟨x, (by simp only [mem_insert, hx, or_true]), hx.right⟩
+    | inr h => exact h₂ hPzZ hPY (by simp [h, hz])
+
 structure IndepSystem (α : Type*) where
   /-- Independent system has a ground set `E` -/
   (E : Finset α)
