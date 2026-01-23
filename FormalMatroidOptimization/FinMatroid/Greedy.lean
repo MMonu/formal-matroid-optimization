@@ -252,44 +252,27 @@ theorem Matroid_of_Greedy {α β : Type*} [DecidableEq α] [AddCommMonoid β] [L
       rw [hB₁, sum_empty]
       rw [sum_ite_of_false (by grind), sum_ite_of_false (by grind)]
       simp
-    have := h c
-      -- have : l₃ <+ (xs.rtake (xs.length - n - 1)) := by
-      --   rw [rtake.eq_1, show (xs.length - (xs.length - n - 1)) = n + 1 by omega, ← hlxs]
-      --   rw [drop_append_of_le_length ?_]
-      --   · apply sublist_append_right
-      --   by_contra hc''
-      --   rw [getElem_eq_iff hn₁, ← hlxs] at hn₂
-      --   rw [getElem?_append_right (by grind)] at hn₂
-      --   have : x ∈ l₃ := by grind
-      --   exact hx₂ (mem_toList.mp ((Perm.mem_iff hl₃).mp this))
-
-
-
-    -- have hw' : weight c X = weight c (Greedy_set F c) := by
-
-
-
-  -- have hX₁ : ∀ u v : ℝ, weight (c u v) X = X.card * u := by
-  --   intro u v
-  --   simp [weight, c]
-  --   rw [Finset.sum_ite_of_true (by simp)]
-  --   simp
-  -- have hY₁ : ∀ u v : ℝ, weight (c u v) Y = (X ∩ Y).card * u + (Y.card - (X ∩ Y).card) * v := by
-  --   intro u v
-  --   simp [weight, c]
-  --   nth_rw 1 [← Finset.sdiff_union_inter Y X]
-  --   rw [Finset.sum_union (by exact Finset.disjoint_sdiff_inter Y X)]
-  --   rw [Finset.sum_ite_of_false (by simp), Finset.sum_ite_of_true (by grind)]
-  --   rw [Finset.sum_ite_of_true (by simp)]
-  --   rw [Finset.inter_comm Y X, add_comm]
-  --   simp [Finset.card_sdiff]
-  --   rw [Nat.cast_sub (by apply Finset.card_le_card; simp)]
-  --   simp
-  -- have : ∃ u v : ℝ, u > v ∧ v > 0 ∧ weight (c u v) X < weight (c u v) Y := by
-  --   simp [weight, c]
-
-
-
+    have : ∃ B', Y ⊆ B' ∧ Maximal F.Indep B' := by
+      refine Set.Finite.exists_le_maximal ?_ hY
+      have : {s : Finset α | F.Indep s} ⊆ F.E.powerset := by
+        intro s hs
+        have := F.subset_ground hs
+        grind only [= mem_coe, = mem_powerset]
+      refine Set.Finite.subset ?_ this
+      apply Finset.finite_toSet
+    obtain ⟨B', hB'₁, hB'₂⟩ := this
+    have : weight c B' ≥ weight c Y := by
+      simp [weight, c]
+      rw [← sdiff_union_inter B' Y, sum_union (by exact disjoint_sdiff_inter B' Y)]
+      rw [inter_comm, inter_eq_left.mpr hB'₁]
+      simp
+    have hw' := lt_of_lt_of_le hw this
+    rw [← hcxs] at hw'
+    obtain ⟨h₁, h₂⟩ := h c
+    have : (Greedy_set F c) = B := by sorry
+    rw [weight_is_maximum, this] at h₂
+    have h₂ := lt_of_lt_of_le hw' (h₂ B' hB'₂)
+    simp at h₂
 
 theorem Matroid_iff_Greedy {α : Type*} [DecidableEq α] (F : IndepSystem α) [DecidablePred F.Indep] :
   IsFinMatroid F ↔
