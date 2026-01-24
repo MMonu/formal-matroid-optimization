@@ -34,3 +34,8 @@ theorem List.rtake_of_length_le {α : Type*} {n : ℕ} {xs : List α} (h : xs.le
 
 theorem List.rtake_length {α : Type*} {xs : List α} : xs.rtake xs.length = xs := by
   exact List.rtake_of_length_le (by omega)
+
+theorem List.rtake_right' {α : Type*} {l₁ l₂ : List α} {n : ℕ} (h : l₂.length = n) :
+    (l₁ ++ l₂).rtake n = l₂ := by
+  rw [rtake.eq_1, drop_left']
+  rw [length_append, h, Nat.add_sub_cancel]

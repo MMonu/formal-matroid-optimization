@@ -38,6 +38,8 @@ structure IndepSystem (α : Type*) where
   /-- All `Indep`endent sets are subsets of the ground set -/
   (subset_ground : ∀ ⦃X⦄, Indep X → X ⊆ E)
 
+instance {α : Type*} {F : IndepSystem α} : DecidablePred F.Indep := F.indep_dec
+
 structure FinMatroid (α : Type*) [DecidableEq α] extends IndepSystem α where
   /-- For any `Indep`endent sets `X` and `Y` with `Y` smaller than `X`, there exists an element in
   `X` not in `Y` with `Y ∪ {x}` `Indep`endent -/

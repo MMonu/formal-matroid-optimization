@@ -160,6 +160,11 @@ theorem select_sublist' {P : Finset α → Prop} [DecidablePred P] {xs : List α
   · exact Sublist.trans (select_monotone hn) (by rw [rtake_length])
   · rw [rtake_of_length_le (le_of_lt (Nat.not_le.mp hn))]
 
+theorem select_monotone' {P : Finset α → Prop} [DecidablePred P] (l₁ l₂ : List α) :
+    select P l₂ <+ select P (l₁ ++ l₂) := by
+  nth_rw 1 [← rtake_right' (show l₂.length = l₂.length by rfl)]
+  refine select_sublist' l₂.length
+
 theorem select_sublist_cons {P : Finset α → Prop} [DecidablePred P] {xs : List α} (h : xs ≠ []) :
     select P xs <+ xs.head h :: select P xs.tail := by
   nth_rw 1 [← cons_head_tail h, select.eq_2]
@@ -180,6 +185,12 @@ theorem select_xs_sublist {P : Finset α → Prop} [DecidablePred P] {xs : List 
         congr; rw [length_cons, take_cons <| by omega, this]
       _ <+ take ((x :: xs).length - n) (x :: xs) ++ select P ((x :: xs).rtake n) := by
         gcongr; simp [rtake.eq_1, drop_cons (by exact tsub_pos_iff_not_le.mpr hn), this]
+
+theorem select_append_sublist {P : Finset α → Prop} [DecidablePred P] {l₁ l₂ : List α} :
+    select P (l₁ ++ l₂) <+ l₁ ++ select P l₂ := by
+  nth_rw 2 [← rtake_right' (show l₂.length = l₂.length by rfl)]
+  · nth_rw 2 [← take_left' (show l₁.length = (l₁ ++ l₂).length - l₂.length by simp)]
+    refine select_xs_sublist (P := P) _
 
 theorem select_mem_of_P {P : Finset α → Prop} [DecidablePred P] {xs : List α} {n : ℕ}
     (hn : n < xs.length)
