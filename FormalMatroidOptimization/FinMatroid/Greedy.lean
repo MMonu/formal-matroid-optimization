@@ -117,6 +117,27 @@ instance {α β : Type*} [AddCommMonoid β] [LinearOrder β] [IsOrderedAddMonoid
 end
 
 local instance {α : Type*} [Encodable α] : DecidableEq α := Encodable.decidableEqOfEncodable α
+
+def IsFinBase_eq {α : Type*} [DecidableEq α] (F : IndepSystem α) (I : Finset α) :
+    IsFinBase F I ↔ (F.Indep I ∧ F.E.powerset.filter (fun J ↦ F.Indep J ∧ I ⊂ J) = ∅) := by
+  rw [IsFinBase, Maximal, Finset.filter_eq_empty_iff]
+  refine ⟨?_, ?_⟩
+  · intro ⟨h, h₁⟩
+    refine ⟨h, ?_⟩
+    intro h₂ J ⟨h₃, h₄⟩
+    grind [Finset.le_iff_subset.mp (h₁ h₃ (le_of_lt (Finset.lt_iff_ssubset.mpr h₄)))]
+  · intro ⟨h, h₁⟩
+    refine ⟨h, ?_⟩
+    intro J h₂ h₃
+    have := (not_and.mp (h₁ (Finset.mem_powerset.mpr (F.subset_ground h₂)))) h₂
+    rw [Finset.le_iff_subset] at h₃ ⊢
+    grind
+
+instance {α : Type*} [DecidableEq α] {F : IndepSystem α} : DecidablePred (IsFinBase F) := by
+  intro I
+  rw [IsFinBase_eq]
+  infer_instance
+
 instance {α : Type*} {F : IndepSystem α} : DecidablePred F.Indep := F.indep_dec
 
 noncomputable def greedy {α β : Type*} [Encodable α] [LinearOrder β] (F : IndepSystem α)
@@ -198,6 +219,27 @@ lemma Greedy_maxweight {α : Type*} [DecidableEq α] (M : FinMatroid α) [Decida
 --     --mergeSort_toFinset_eq
 --     sorry
 
+-- set_option trace.Meta.synthInstance true
+
+open Finset in
+theorem greedy_min_weight {α β : Type*} [Encodable α] [LinearOrder β] [AddCommMonoid β]
+    [IsOrderedAddMonoid β] (M : FinMatroid α) (c : α → β) :
+    is_min_weight_base M c (greedy M c).toFinset := by
+  refine ⟨greedy_IsFinBase M c, ?_⟩
+  by_contra! hc
+  set sT := M.E.powerset.filter
+    (fun I ↦ IsFinBase M I ∧ weight c (greedy M c).toFinset < weight c I) with hsB
+  set f := fun J ↦ #((greedy M c).toFinset ∩ J)
+  obtain ⟨T, hT₁, hT₂⟩ := Finset.exists_max_image sT f ?_
+  · set lg := M.E.toList.mergeSort (fun a b ↦ (weightRel' c) a b) with hlg
+    set lg_fil := lg.filter (fun x ↦ x ∈ (greedy M c).toFinset ∧ x ∉ T) with hlg_fil
+    set x := lg_fil[1]'(?_)
+    · -- use x_k = x in the proof
+      sorry
+    · -- show lg_fil is not empty (that is (greedy M c).toFinset \ T not empty)
+  · -- use hc to show that sT is not empty
+
+
 open Finset in
 lemma exists_eq_insert_of_card_succ {α : Type*} [DecidableEq α] {X Y : Finset α} (hXY : X ⊆ Y)
     (hcard : #Y = #X + 1) : ∃ x, x ∈ Y ∧ x ∉ X ∧ Y = insert x X:= by
@@ -252,8 +294,7 @@ theorem Matroid_of_greedy {α : Type*} [Encodable α] (F : IndepSystem α)
       rw [two_mul, mul_add, mul_add, mul_comm #(Y \ X) #(X \ Y), add_lt_add_iff_right]
       rwa [mul_lt_mul_iff_right₀ <| card_pos.mpr (nonempty_iff_ne_empty.mpr hXY₁)]
     --
-    by_contra hc
-    simp only [not_exists, not_and] at hc
+    by_contra! hc
     set lg := (F.E.toList.mergeSort fun x y ↦ decide (weightRel' c x y)) with hlg
     set lX := X.sort (weightRel' c) with hlX
     set lY := (Y \ X).sort (weightRel' c) with hlY
@@ -344,7 +385,7 @@ theorem Matroid_of_greedy {α : Type*} [Encodable α] (F : IndepSystem α)
       rw [← sdiff_union_inter B' Y, inter_comm, inter_eq_left.mpr hB'₂, union_comm]
       refine weight_monotone_of_pos (c := c) ?_
       grind
-
+    --
     exact (lt_self_iff_false _).mp (calc weight c (greedy F c).toFinset
     _ = weight c X := by rw [hlg₁, hwB]
     _ < weight c Y := hw₁
