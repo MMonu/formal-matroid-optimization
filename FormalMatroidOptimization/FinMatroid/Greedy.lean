@@ -315,21 +315,41 @@ lemma FinBase_maxweight_no_change {α β : Type*} [Encodable α] [LinearOrder β
   grind [is_min_weight_base]
 
 open Finset in
-theorem greedy_min_weight {α β : Type*} [Encodable α] [LinearOrder β] [AddCommMonoid β]
+theorem greedy_max_weight {α β : Type*} [Encodable α] [LinearOrder β] [AddCommMonoid β]
     [IsOrderedCancelAddMonoid β] (M : FinMatroid α) (c : α → β) :
     is_min_weight_base M c (greedy M c).toFinset := by
   refine ⟨greedy_IsFinBase M c, ?_⟩
   by_contra! hc
   obtain ⟨T, hT_base, hT_maxw, hT_weight, hT_mint⟩ := greedy_exists_T hc
   set lg := M.E.toList.mergeSort (fun x y ↦ (weightRel' c) x y) with hlg
-  set lg_fil := lg.reverse.filter (fun x ↦ x ∈ (greedy M c).toFinset ∧ x ∉ T) with hlg_fil
-  set x := lg_fil[0]'(?_) with hx
+  set lg_fil := lg.filter (fun x ↦ x ∈ (greedy M c).toFinset ∧ x ∉ T) with hlg_fil
+  have hlg_fil_ne : lg_fil ≠ [] := by
+    rw [hlg_fil]
+    by_contra hc
+    have hc := List.filter_eq_nil_iff.mp hc
+    have hgsubT : (greedy M c).toFinset ⊆ T := by
+      intro a ha
+      by_contra hca
+      have := hc a ?_
+      · apply this
+        refine (Bool.decide_iff _).mpr ⟨ha, hca⟩
+      · rw [hlg, List.mem_mergeSort, mem_toList]
+        refine Finset.mem_of_subset ?_ ha
+        exact M.subset_ground (greedy_IsFinBase M c).left
+    have hTsubg := (greedy_IsFinBase M c).right hT_base.left hgsubT
+    rw [le_iff_subset] at hTsubg
+    rwa [← Subset.antisymm hTsubg hgsubT, lt_self_iff_false] at hT_weight
+  have hlg_len : lg_fil.length - 1 < lg_fil.length := by
+    refine Nat.sub_one_lt ?_
+    exact (ne_of_lt (List.length_pos_iff.mpr hlg_fil_ne)).symm
+  set x := lg_fil[lg_fil.length - 1]'(hlg_len) with hx
   · have hxlg_f : x ∈ lg_fil := by refine List.getElem_mem ?_
-    simp [hlg_fil] at hxlg_f
-    --have hx1 : x ∈ (greedy M c).toFinset \ T := by rw [mem_sdiff] simp_all
+    simp only [hlg_fil, List.mem_toFinset, Bool.decide_and, decide_not, List.mem_filter,
+      Bool.and_eq_true, decide_eq_true_eq, Bool.not_eq_eq_eq_not, Bool.not_true,
+      decide_eq_false_iff_not] at hxlg_f
     have hxin : x ∈ M.E \ T := by
       rw [mem_sdiff]
-      simp [hlg] at hxlg_f
+      simp only [hlg, List.mem_mergeSort, mem_toList] at hxlg_f
       refine ⟨hxlg_f.1, hxlg_f.2.2⟩
     have hC := FinBase_mem_insert_circuit hT_base hxin
     obtain ⟨C, hCx, hC, hxT⟩ := hC
@@ -351,18 +371,20 @@ theorem greedy_min_weight {α β : Type*} [Encodable α] [LinearOrder β] [AddCo
         have h2 : Disjoint {y} (T \ {y}) := Disjoint.symm Finset.sdiff_disjoint
         have h3 : Disjoint {x} (T \ {y}) := by simp_all
         calc weight c T = weight c ((T \ {y}) ∪ {y}) := by simp_all
-                _ = weight c {y} + weight c (T \ {y}) := by rw [weight_of_union, add_comm]; exact sdiff_disjoint
+                _ = weight c {y} + weight c (T \ {y}) := by
+                  rw [weight_of_union, add_comm]; exact sdiff_disjoint
                 _ = c y + weight c (T \ {y}) := by simp_all [weight]
                 _ = c x + weight c (T \ {y}) := by simp_all
                 _ = weight c {x} + weight c (T \ {y}) := by simp_all [weight]
-                _ = weight c ({x} ∪ (T \ {y})) := by rw [weight_of_union]; exact disjoint_of_subset_left (fun ⦃a⦄ a_1 ↦ a_1) h3
+                _ = weight c ({x} ∪ (T \ {y})) := by
+                  rw [weight_of_union]; exact disjoint_of_subset_left (fun ⦃a⦄ a_1 ↦ a_1) h3
                 _ = weight c (insert x T \ {y}) := ?_
         · rw [Finset.singleton_union x (T \ {y})]
           have hm : insert x (T \ {y}) = insert x T \ {y} := by
             rw [← insert_sdiff_of_notMem T ?_]
             simp_all
           simp_all
-
+--
       have hT'_weight : weight c (greedy M.toIndepSystem c).toFinset < weight c T' := by
         exact lt_of_lt_of_eq hT_weight hT'_weq
       have hT'_int : #(T ∩ (greedy M c).toFinset) < #(T' ∩ (greedy M c).toFinset) := by
@@ -372,18 +394,20 @@ theorem greedy_min_weight {α β : Type*} [Encodable α] [LinearOrder β] [AddCo
         simp_all
       have := hT_mint T' ⟨hT'_base, Eq.symm hT'_weq⟩
       exact (not_lt_of_ge this) hT'_int
-
+--
     · have hxy : c x < c y := Std.lt_of_le_of_ne hy_weight fun a ↦ hcxy (id (Eq.symm a))
-
+      have hxs : (M.E.toList).Nodup := nodup_toList M.E
+      have hlgn : lg.Nodup := List.nodup_mergeSort.mpr hxs
       have hxs : (M.E.toList).Nodup := nodup_toList M.E
       have hlgp : List.Pairwise (weightRel' c) lg := by
         exact List.pairwise_mergeSort' (weightRel' c) M.E.toList
-      have ha : ∀ (x y : α), x ∈ M.E.toList → y ∈ M.E.toList → weightRel' c x y ∧ weightRel' c y x → x = y := by
+      have ha : ∀ (x y : α), x ∈ M.E.toList → y ∈ M.E.toList → weightRel' c x y ∧
+          weightRel' c y x → x = y := by
         intro x y hx hy h
         exact (inferInstance : IsAntisymm α (weightRel' c)).antisymm (a := x) (b := y) h.1 h.2
       have hsel_eq := Greedy.selectRel_eq_list_selectRel (M.indep_subset) (weightRel' c) (hxs) (ha)
-      simp [List.Greedy.selectRel, ← hlg] at hsel_eq
-
+      simp only [List.Greedy.selectRel, ← hlg] at hsel_eq
+--
       have hx_in : x ∈ lg := hxlg_f.1
       have hy_in : y ∈ lg := by
         refine List.mem_mergeSort.mpr ?_
@@ -395,113 +419,96 @@ theorem greedy_min_weight {α β : Type*} [Encodable α] [LinearOrder β] [AddCo
         by_contra! h
         have : (⟨m, hm⟩ : Fin lg.length) < ⟨n, hn⟩ := Fin.mk_lt_mk.mpr h
         have := List.Pairwise.rel_get_of_lt hlgp (b := ⟨n, hn⟩) (a := ⟨m, hm⟩) this
-        simp [hnx, hmy] at this
+        simp only [List.get_eq_getElem, hmy, hnx] at this
         have := by simpa [Order.Preimage] using this.1
         exact (not_le_of_gt hxy) this
       have hnm' : lg.length - m - 1 ≤ lg.length - n - 1 := by gcongr
       have hx_ing : x ∈ greedy M c := by simp_all
       have hy_ning : y ∉ greedy M c := by simp_all
       have hx_ing' : lg[n] ∈ List.Greedy.select M.Indep lg := by
-        simp [greedy, hsel_eq, ← hnx] at hx_ing
+        simp only [greedy, hsel_eq, ← hnx] at hx_ing
         exact hx_ing
       have hy_ning' : lg[m] ∉ List.Greedy.select M.Indep lg := by
-        simp [greedy, hsel_eq, ← hmy] at hy_ning
+        simp only [greedy, hsel_eq, ← hmy] at hy_ning
         exact hy_ning
       obtain ⟨ng, hng, hngx⟩ := List.getElem_of_mem hx_ing
-      have hxlg_eq := List.Greedy.select_iff (P := M.Indep) (xs := lg) (hl := List.nodup_mergeSort.mpr hxs) (n := n) hn
-      have hylg_eq := List.Greedy.select_iff (P := M.Indep) (xs := lg) (hl := List.nodup_mergeSort.mpr hxs) (n := m) hm
+      have hxlg_eq := List.Greedy.select_iff (P := M.Indep) (xs := lg)
+          (hl := List.nodup_mergeSort.mpr hxs) (n := n) hn
+      have hylg_eq := List.Greedy.select_iff (P := M.Indep) (xs := lg)
+          (hl := List.nodup_mergeSort.mpr hxs) (n := m) hm
       have hxB := hxlg_eq.mp hx_ing'
       have hxyB := List.Greedy.select_monotone (P := M.Indep) (xs := lg) hnm'
       set B_x := (List.Greedy.select M.Indep (lg.rtake (lg.length - n - 1))) with hB_x
       set B_y := (List.Greedy.select M.Indep (lg.rtake (lg.length - m - 1))) with hB_y
+--
       have hBy_ind : M.Indep (insert y B_y.toFinset) := by
         have hxyB' : B_y.toFinset ⊆ B_x.toFinset := by
           intro a ha
           refine List.mem_toFinset.mpr ?_
-          have := List.mem_dedup.mp ha
-          exact List.Sublist.mem this hxyB
+          exact List.Sublist.mem (List.mem_dedup.mp ha) hxyB
         have hBx_T : B_x.toFinset ⊆ T := by
           intro a ha
           rw [hB_x] at ha
           by_contra haT
+--
           have haB : a ∈ B_x := List.mem_toFinset.mp ha
           have hafil : a ∈ lg_fil := by
-            simp [hlg_fil]
+            simp only [hlg_fil, List.mem_toFinset, Bool.decide_and, decide_not, List.mem_filter,
+              Bool.and_eq_true, decide_eq_true_eq, Bool.not_eq_eq_eq_not, Bool.not_true,
+              decide_eq_false_iff_not]
             have h1 : B_x.Sublist (greedy M c) := by
-              simp [greedy, hsel_eq]
+              simp only [greedy, hsel_eq]
               exact List.Greedy.select_sublist' (lg.length - n - 1)
             have h2 : (greedy M c).Sublist lg := by
-              simp [greedy, hsel_eq]
+              simp only [greedy, hsel_eq]
               exact List.Greedy.select_sublist
             have h3 : a ∈ lg := h2.subset (h1.subset haB)
             refine ⟨h3, ⟨h1.subset haB, haT⟩⟩
-          obtain ⟨j, hj, hja⟩ := List.getElem_of_mem hafil
-          have harlg : a ∈ (lg.rtake (lg.length - n - 1)) := by
+          obtain ⟨i, hi, hia⟩ := List.getElem_of_mem hafil
+--
+          have halgr : a ∈ (lg.rtake (lg.length - n - 1)) := by
             exact List.Sublist.mem haB (List.Greedy.select_sublist)
-          obtain ⟨i, hi, hia⟩ := List.getElem_of_mem harlg
-          set k := i + n + 1 with hk'
-          have hk : k < lg.length := by
-            calc k = i + n + 1 := by rw [hk']
-                 _ < (lg.rtake (lg.length - n - 1)).length + n + 1 := by gcongr
-                 _ = (lg.length - n - 1) + n + 1 := by simp [List.rtake, List.length_drop]; omega
-                 _ = lg.length := by omega
-          have : lg[k] = a := by
-            rw [← hia]
-            unfold List.rtake at ⊢ hi
-            have : lg.length - (lg.length - n - 1) = n + 1 := by omega
-            rw [this] at hi
-            sorry
-          have : i < n := by
-            sorry
-          have : j < 0 := by sorry
-          contradiction
-        have : (insert y B_x.toFinset) ⊆ T := by
-          rw [insert_subset_iff]
-          refine ⟨hyT, hBx_T⟩
-        have hBxy_ind : M.Indep (insert y B_x.toFinset) := M.indep_subset hT_base.1 this
-        have : insert y B_y.toFinset ⊆ insert y B_x.toFinset := insert_subset_insert y hxyB'
-        exact M.indep_subset hBxy_ind this
-/-
-  set lg := M.E.toList.mergeSort (fun x y ↦ (weightRel' c) x y) with hlg
-  set lg_fil := lg.reverse.filter (fun x ↦ x ∈ (greedy M c).toFinset ∧ x ∉ T) with hlg_fil
-  set x := lg_fil[0]'(?_) with hx
--/
-      rw [← hmy] at hBy_ind
+          simp only [List.rtake] at halgr
+          rw [List.mem_drop_iff_getElem] at halgr
+          obtain ⟨k, hk, hka⟩ := halgr
+          rw [add_comm] at hk
+          have hxa : n < k + n + 1 := by omega
+          rw [List.pairwise_iff_getElem] at hlgp
+          have h : weightRel' c x a := by
+            rw [← hka, ← hnx]
+            refine hlgp _ _ hn hk ?_
+            omega
+          have h₁ : lg_fil.Pairwise (weightRel' c) := by
+            refine List.Pairwise.filter _ ?_
+            exact List.pairwise_mergeSort' (weightRel' c) M.E.toList
+--
+          rw [List.pairwise_iff_getElem] at h₁
+          have h₂ : weightRel' c a x := by
+            by_cases hxa : a = x
+            · rw [hxa]
+              exact or_self_iff.mp (total_of (weightRel' c) x x)
+            · rw [hx, ← hia]
+              refine h₁ _ _ hi ?_ ?_
+              · refine Nat.lt_iff_le_and_ne.mpr ⟨Nat.le_sub_one_of_lt hi, ?_⟩
+                rw [hx, ← hia] at hxa
+                by_contra hc
+                apply hxa
+                rw [List.Nodup.getElem_inj_iff ?_]
+                · exact hc
+                · exact List.Nodup.filter _ hlgn
+          have h := antisymm_of (weightRel' c) h h₂
+          rw [← hnx, ← hka] at h
+          rw [List.Nodup.getElem_inj_iff hlgn] at h
+          omega
+        refine M.indep_subset hT_base.left ?_
+        refine insert_subset_iff.mpr ⟨hyT, ?_⟩
+        exact trans_of _ hxyB' hBx_T
+      rw [mem_sdiff] at hy
+      apply hy.right
+      rw [← hmy] at hBy_ind ⊢
       have := hylg_eq.mpr hBy_ind
-      contradiction
-  · have : (greedy M c).toFinset ≠ T := by
-      by_contra
-      have : weight c (greedy M.toIndepSystem c).toFinset = weight c T := by
-        simp_all
-      simp_all
-    exact FinBases_notsub (X := (greedy M c).toFinset) (X' := T) (greedy_IsFinBase M c) (hT_base) this
-
-/-
-        have : lg = lg.mergeSort fun x y ↦ decide (weightRel' c x y) := by
-          exact Eq.symm (List.mergeSort_eq_self (weightRel' c) hlgp)
-        rw [List.Greedy.selectRel, ← this] at hsel_eq
-
-      --have lgg : lg = lg.mergeSort fun x y ↦ decide (weightRel' c x y) := by
-        --exact Eq.symm (List.mergeSort_eq_self (weightRel' c) hlgp)
-      --have : List.Greedy.select M.Indep lg = List.Greedy.selectRel M.Indep (weightRel' c) lg := by
-
-  set sT := M.E.powerset.filter
-    (fun I ↦ is_min_weight_base M c I ∧ weight c (greedy M c).toFinset < weight c I) with hsT
-  set f := fun J ↦ #((greedy M c).toFinset ∩ J)
-  have : sT.Nonempty := by
-    obtain ⟨T₁, hT₁b, hT₁w⟩ := hc
-    set sT' := M.E.powerset.filter
-      (fun I ↦ IsFinBase M I ∧ weight c (greedy M c).toFinset < weight c I)
-    set f' := fun J ↦ weight c J
-    have : sT'.Nonempty := by
-      use T₁
-      grind [M.subset_ground hT₁b.1]
-    obtain ⟨T, hT, hT_maxint⟩ := Finset.exists_max_image sT' f' this
-    obtain ⟨⟩ := hT
-    refine filter_nonempty_iff.mpr ?_
-    use T
-    grind [M.subset_ground]
--/
+      rw [greedy_eq, List.Greedy.selectRel, ← hlg]
+      exact List.mem_toFinset.mpr this
 
 open Finset in
 lemma exists_eq_insert_of_card_succ {α : Type*} [DecidableEq α] {X Y : Finset α} (hXY : X ⊆ Y)
