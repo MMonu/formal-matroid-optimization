@@ -44,3 +44,23 @@ lemma IsFinBase_iff_IsBase {α : Type*} [DecidableEq α] (M : FinMatroid α) (B 
     · intro X hX_FIndep hBX
       have hX_Indep := (FinIndep_iff_Indep M X).mp hX_FIndep
       exact Finset.le_iff_subset.mpr (hB_max hX_Indep hBX)
+
+lemma IsFinBase_eq {α : Type*} [DecidableEq α] (F : IndepSystem α) (I : Finset α) :
+    IsFinBase F I ↔ (F.Indep I ∧ F.E.powerset.filter (fun J ↦ F.Indep J ∧ I ⊂ J) = ∅) := by
+  rw [IsFinBase, Maximal, Finset.filter_eq_empty_iff]
+  refine ⟨?_, ?_⟩
+  · intro ⟨h, h₁⟩
+    refine ⟨h, ?_⟩
+    intro h₂ J ⟨h₃, h₄⟩
+    grind [Finset.le_iff_subset.mp (h₁ h₃ (le_of_lt (Finset.lt_iff_ssubset.mpr h₄)))]
+  · intro ⟨h, h₁⟩
+    refine ⟨h, ?_⟩
+    intro J h₂ h₃
+    have := (not_and.mp (h₁ (Finset.mem_powerset.mpr (F.subset_ground h₂)))) h₂
+    rw [Finset.le_iff_subset] at h₃ ⊢
+    grind
+
+instance {α : Type*} [DecidableEq α] {F : IndepSystem α} : DecidablePred (IsFinBase F) := by
+  intro I
+  rw [IsFinBase_eq F I]
+  infer_instance

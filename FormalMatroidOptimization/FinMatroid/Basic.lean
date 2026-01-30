@@ -80,5 +80,18 @@ lemma FinIndep_iff_Indep {α : Type*} [DecidableEq α] (M : FinMatroid α) (I : 
   simp only [toMatroid_FinIndep_iff, Set.toFinite_toFinset, Finset.toFinset_coe,
   Finset.finite_toSet, exists_const]
 
-def IsFinMatroid {α : Type*} [DecidableEq α] (F : IndepSystem α) [DecidablePred F.Indep] : Prop :=
+def IsFinMatroid {α : Type*} [DecidableEq α] (F : IndepSystem α) : Prop :=
   IndepSystem.AugmentationProperty (F.Indep)
+
+def FinMatroid_of_IsFinMatroid {α : Type*} [DecidableEq α] {F : IndepSystem α}
+    (h : IsFinMatroid F) : FinMatroid α where
+  E := F.E
+  Indep := F.Indep
+  indep_dec := F.indep_dec
+  indep_empty := F.indep_empty
+  indep_subset := F.indep_subset
+  subset_ground := F.subset_ground
+  indep_aug := h
+
+lemma FinMatroid_of_IsFinMatroid_eq {α : Type*} [DecidableEq α] {F : IndepSystem α}
+    (h : IsFinMatroid F) : F = (FinMatroid_of_IsFinMatroid h).toIndepSystem := by rfl
