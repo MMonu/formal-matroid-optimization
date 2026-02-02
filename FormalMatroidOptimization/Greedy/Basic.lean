@@ -1,5 +1,3 @@
-import Mathlib.Tactic
-
 import FormalMatroidOptimization.List.MaxRel
 import FormalMatroidOptimization.List.Greedy
 import FormalMatroidOptimization.FinMatroid.Basic

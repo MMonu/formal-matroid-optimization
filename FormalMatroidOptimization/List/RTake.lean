@@ -1,8 +1,7 @@
 import Mathlib.Data.List.Basic
 import Mathlib.Data.List.DropRight
-import Mathlib.Data.List.TakeDrop
 import Mathlib.Data.List.Sublists
-import Mathlib.Tactic
+import Mathlib.Algebra.Order.Sub.Defs
 
 open List
 
@@ -17,7 +16,7 @@ theorem List.rtake_eq_getElem_cons' {α : Type*} {xs : List α} {n : ℕ} (hn : 
     xs.rtake (n + 1) = xs[xs.length - 1 - n ]'(by omega) :: xs.rtake (n) := by
   have h1 : (xs.length - (xs.length - 1 - n)) = n + 1 := by omega
   have := rtake_eq_getElem_cons (xs := xs) (n := xs.length - 1 - n) (by omega)
-  simp only [h1, add_tsub_cancel_right] at this
+  simp only [h1] at this
   assumption
 
 theorem List.rtake_sublist_cons {α : Type*} {x : α} {xs : List α} {n : ℕ} :

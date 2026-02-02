@@ -2,7 +2,6 @@ import Mathlib.Data.List.Basic
 import Mathlib.Data.List.DropRight
 import Mathlib.Data.List.TakeDrop
 import Mathlib.Data.List.Sublists
-import Mathlib.Tactic
 
 import FormalMatroidOptimization.List.Rtake
 import FormalMatroidOptimization.FinMatroid.Basic

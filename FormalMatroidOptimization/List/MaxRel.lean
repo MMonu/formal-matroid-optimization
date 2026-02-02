@@ -1,5 +1,4 @@
 import Mathlib.Data.List.Basic
-import Mathlib.Tactic
 
 theorem List.Perm.ne_nil_of_ne_nil {α : Type*} {xs ys : List α} (h : xs.Perm ys) :
     xs ≠ [] → ys ≠ [] := by

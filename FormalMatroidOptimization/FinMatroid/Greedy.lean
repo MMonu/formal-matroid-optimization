@@ -1,4 +1,5 @@
-import Mathlib.Tactic
+import Mathlib.Data.Finset.Max
+import Mathlib.Data.Finset.Sort
 
 import FormalMatroidOptimization.FinMatroid.Basic
 import FormalMatroidOptimization.FinMatroid.FinBases

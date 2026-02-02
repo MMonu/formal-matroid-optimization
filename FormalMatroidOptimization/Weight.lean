@@ -1,4 +1,9 @@
-import Mathlib.Tactic
+import Mathlib.Algebra.Group.Basic
+import Mathlib.Algebra.Order.Monoid.Basic
+import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+import Mathlib.Logic.Encodable.Basic
+import Mathlib.Logic.Equiv.List
+import Mathlib.Tactic.Order
 
 def weight {α β : Type*} [AddCommMonoid β] (c : α → β) (X : Finset α) : β := Finset.sum X c
 

@@ -1,6 +1,5 @@
 import Mathlib.Combinatorics.Matroid.Basic
 import Mathlib.Combinatorics.Matroid.IndepAxioms
-import Mathlib.Tactic
 
 def IndepSystem.HereditaryProperty {α : Type*} (P : Finset α → Prop) : Prop :=
   ∀ ⦃X Y⦄, P X → Y ⊆ X → P Y
