@@ -1,7 +1,21 @@
 import Mathlib.Data.List.Basic
 
-theorem List.Perm.ne_nil_of_ne_nil {α : Type*} {xs ys : List α} (h : xs.Perm ys) :
-    xs ≠ [] → ys ≠ [] := by
+/-!
+# Maximal element of a list with respect to a transitive and total relation
+
+Generalizes `List.max`. For the most parts the theorems and proofs are modified versions of their
+counterparts for `List.max`.
+
+## Main Definitions
+
+* `maxRel r` gives a two-argument function such that maps a b to a or b, such that
+  r c (maxRel r a b) is fulfilled for c = a and c = b respectively.
+
+* `List.maxRel r` returns a maximal element of the list `l`
+-/
+
+theorem List.Perm.ne_nil_of_ne_nil {α : Type*} {l₁ l₂ : List α} (h : l₁.Perm l₂) :
+    l₁ ≠ [] → l₂ ≠ [] := by
   intro hi
   by_contra hc
   rw [hc] at h
@@ -51,7 +65,7 @@ def maxRel? {α : Type*} (r : α → α → Prop) [DecidableRel r] [IsTotal α r
   | x :: xs => some (xs.foldl (maxRel r) x)
 
 protected def maxRel {α : Type*} (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r] :
-    (lst : List α ) → (h : lst ≠ []) → α
+    (l : List α ) → (h : l ≠ []) → α
   | x :: xs, _ => xs.foldl (maxRel r) x
 
 theorem maxRel_singleton {α : Type} (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r]
@@ -72,8 +86,8 @@ theorem maxRel?_cons' {α : Type*} (r : α → α → Prop) [DecidableRel r] [Is
   · simp [maxRel?_cons', foldl_assoc]
 
 theorem maxRel?_mem {α : Type*} (r : α → α → Prop) [DecidableRel r] [IsTotal α r]
-    [IsTrans α r] {lst : List α} {a : α} : lst.maxRel? r = some a → a ∈ lst := by
-  match lst with
+    [IsTrans α r] {l : List α} {a : α} : l.maxRel? r = some a → a ∈ l := by
+  match l with
   | [] => simp [maxRel?]
   | x :: xs =>
     simp only [maxRel?, Option.some.injEq, mem_cons]
@@ -94,14 +108,14 @@ theorem maxRel?_mem {α : Type*} (r : α → α → Prop) [DecidableRel r] [IsTo
         simp [p]
 
 theorem maxRel?_eq_some_max {α : Type*} (r : α → α → Prop) [DecidableRel r] [IsTotal α r]
-    [IsTrans α r] {lst : List α} (h : lst ≠ []) : lst.maxRel? r = some (lst.maxRel r h) := by
-  match lst with
+    [IsTrans α r] {l : List α} (h : l ≠ []) : l.maxRel? r = some (l.maxRel r h) := by
+  match l with
   | [] => contradiction
   | x :: xs => simp [List.maxRel, maxRel?]
 
 @[simp]
 theorem maxRel_mem {α : Type*} (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r]
-    {lst : List α} (h : lst ≠ []) : lst.maxRel r h ∈ lst :=
+    {l : List α} (h : l ≠ []) : l.maxRel r h ∈ l :=
   maxRel?_mem r (maxRel?_eq_some_max r h)
 
 theorem maxRel_with_max {α : Type*} (r : α → α → Prop) [DecidableRel r] [IsTotal α r]
@@ -118,9 +132,9 @@ theorem maxRel_with_max {α : Type*} (r : α → α → Prop) [DecidableRel r] [
     exact (h (xs.maxRel r h') (maxRel_mem r h')).right
 
 theorem maxRel_nle {α : Type*} (r : α → α → Prop) [DecidableRel r] [IsTotal α r]
-    [IsTrans α r] {xs : List α} (h : xs ≠ []) :
-    ∀ x ∈ xs, r (xs.maxRel r h) x → r x (xs.maxRel r h) := by
-  induction xs with
+    [IsTrans α r] {l : List α} (h : l ≠ []) :
+    ∀ x ∈ l, r (l.maxRel r h) x → r x (l.maxRel r h) := by
+  induction l with
   | nil => contradiction
   | cons y ys ih =>
     have := maxRel?_eq_some_max r h
@@ -144,30 +158,30 @@ theorem maxRel_nle {α : Type*} (r : α → α → Prop) [DecidableRel r] [IsTot
           exact Trans.simple (ih hy x hx₀ (Trans.simple h₁ hx₁)) h₁
 
 theorem maxRel?_unique_of_antisymm {α : Type*}
-    (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r] {xs ys : List α}
-    (ha : ∀ x ∈ xs, ∀ y ∈ xs, r x y ∧ r y x → x = y) (h : ys ~ xs) :
-    xs.maxRel? r = ys.maxRel? r  := by
-  by_cases hxs : xs = []
-  · simp [hxs, perm_nil] at h
-    simp [hxs, h]
-  · have hys : ys ≠ [] := by
-      rw [ne_nil_iff_length_pos, Perm.length_eq h]; simp [length_pos_iff, hxs]
-    rw [maxRel?_eq_some_max r hxs, maxRel?_eq_some_max r hys, Option.some_inj]
-    have h₀ : ys.maxRel r hys ∈ xs := (Perm.mem_iff h).mp (maxRel_mem r hys)
-    have h₁ : xs.maxRel r hxs ∈ ys := (Perm.mem_iff h).mpr (maxRel_mem r hxs)
-    have ha := ha (List.maxRel r xs hxs) (maxRel_mem r hxs) (List.maxRel r ys hys) h₀
-    have := total_of r (List.maxRel r xs hxs) (List.maxRel r ys hys)
+    (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r] {l₁ l₂ : List α}
+    (ha : ∀ x ∈ l₁, ∀ y ∈ l₁, r x y ∧ r y x → x = y) (h : l₂ ~ l₁) :
+    l₁.maxRel? r = l₂.maxRel? r  := by
+  by_cases hl₁ : l₁ = []
+  · simp [hl₁, perm_nil] at h
+    simp [hl₁, h]
+  · have hl₂ : l₂ ≠ [] := by
+      rw [ne_nil_iff_length_pos, Perm.length_eq h]; simp [length_pos_iff, hl₁]
+    rw [maxRel?_eq_some_max r hl₁, maxRel?_eq_some_max r hl₂, Option.some_inj]
+    have h₀ : l₂.maxRel r hl₂ ∈ l₁ := (Perm.mem_iff h).mp (maxRel_mem r hl₂)
+    have h₁ : l₁.maxRel r hl₁ ∈ l₂ := (Perm.mem_iff h).mpr (maxRel_mem r hl₁)
+    have ha := ha _ (maxRel_mem r hl₁) _ h₀
+    have := total_of r (List.maxRel r _ hl₁) (List.maxRel r _ hl₂)
     cases this with
-    | inl h₂ => exact ha ⟨h₂, maxRel_nle r hxs _ h₀ h₂⟩
-    | inr h₂ => exact ha ⟨maxRel_nle r hys _ h₁ h₂, h₂⟩
+    | inl h₂ => exact ha ⟨h₂, maxRel_nle r hl₁ _ h₀ h₂⟩
+    | inr h₂ => exact ha ⟨maxRel_nle r hl₂ _ h₁ h₂, h₂⟩
 
 theorem maxRel_unique_of_antisymm {α : Type*}
-    (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r] {xs ys : List α}
-    (ha : ∀ x ∈ xs, ∀ y ∈ xs, r x y ∧ r y x → x = y) (h : ys ~ xs) (hxs : xs ≠ []) :
-    xs.maxRel r hxs = ys.maxRel r (by by_contra hc; rw [hc] at h; exact hxs (Perm.eq_nil h.symm))
+    (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r] {l₁ l₂ : List α}
+    (ha : ∀ x ∈ l₁, ∀ y ∈ l₁, r x y ∧ r y x → x = y) (h : l₂ ~ l₁) (hl₁ : l₁ ≠ []) :
+    l₁.maxRel r hl₁ = l₂.maxRel r (by by_contra hc; rw [hc] at h; exact hl₁ (Perm.eq_nil h.symm))
     := by
-  have hys : ys ≠ [] := by by_contra hc; rw [hc] at h; exact hxs (Perm.eq_nil h.symm)
+  have hl₂ : l₂ ≠ [] := by by_contra hc; rw [hc] at h; exact hl₁ (Perm.eq_nil h.symm)
   have := maxRel?_unique_of_antisymm r ha h
-  rwa [maxRel?_eq_some_max r hxs, maxRel?_eq_some_max r hys, Option.some_inj] at this
+  rwa [maxRel?_eq_some_max r hl₁, maxRel?_eq_some_max r hl₂, Option.some_inj] at this
 
 end List

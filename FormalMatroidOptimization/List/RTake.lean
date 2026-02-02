@@ -3,6 +3,10 @@ import Mathlib.Data.List.DropRight
 import Mathlib.Data.List.Sublists
 import Mathlib.Algebra.Order.Sub.Defs
 
+/-!
+# Lemmas about `List.rtake`, some mirroring those of `List.take`.
+-/
+
 open List
 
 theorem List.rtake_eq_getElem_cons {α : Type*} {xs : List α} {n : ℕ} (hn : n < xs.length) :
@@ -34,7 +38,12 @@ theorem List.rtake_of_length_le {α : Type*} {n : ℕ} {xs : List α} (h : xs.le
 theorem List.rtake_length {α : Type*} {xs : List α} : xs.rtake xs.length = xs := by
   exact List.rtake_of_length_le (by omega)
 
+theorem List.rtake_right {α : Type*} {l₁ l₂ : List α} :
+    (l₁ ++ l₂).rtake l₂.length = l₂ := by
+  rw [rtake.eq_1, drop_left']
+  rw [length_append, Nat.add_sub_cancel]
+
+@[simp]
 theorem List.rtake_right' {α : Type*} {l₁ l₂ : List α} {n : ℕ} (h : l₂.length = n) :
     (l₁ ++ l₂).rtake n = l₂ := by
-  rw [rtake.eq_1, drop_left']
-  rw [length_append, h, Nat.add_sub_cancel]
+  rw [← h]; apply rtake_right

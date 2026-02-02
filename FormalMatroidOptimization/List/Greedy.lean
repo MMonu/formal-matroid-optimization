@@ -7,15 +7,34 @@ import FormalMatroidOptimization.List.Rtake
 import FormalMatroidOptimization.FinMatroid.Basic
 import FormalMatroidOptimization.List.MaxRel
 
+/-!
+# Greedy selection of elements in a list
+
+## Implemenation Details
+
+Due to the implemenation of lists in Lean, the elements are considered from right to left.
+
+## Main Definitions
+
+* `List.Greedy.select P l` Greedy select elements of the list `l` from right to left, based on the
+  predicate `P`.
+
+* `List.Greedy.select_iff` Charcterize exactly when an element is selected, based on the predicate
+  during the greedy selection algorithm.
+
+* `List.Greedy.selectRel P r l` Sort the list `l` with respect to the relation `r` using mergeSort,
+  before the greedy selection.
+-/
+
 namespace List
 
 theorem mergeSort_toFinset_eq {α : Type*} [DecidableEq α]
-    (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r] (xs : List α) :
-    (xs.mergeSort (fun a b ↦ r a b)).toFinset = xs.toFinset := by
-  induction xs with
+    (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r] (l : List α) :
+    (l.mergeSort (fun a b ↦ r a b)).toFinset = l.toFinset := by
+  induction l with
   | nil => simp
   | cons x xs ih =>
-    obtain ⟨l₁, l₂, h1, h2, h3⟩ := List.mergeSort_cons (le := fun a b ↦ decide (r a b))
+    obtain ⟨l₁, l₂, h1, h2, h3⟩ := mergeSort_cons (le := fun a b ↦ decide (r a b))
       (by simp only [decide_eq_true_eq]; intro a b c hab hbc; exact trans_of r hab hbc)
       (by simp [IsTotal.total (r := r)]) x xs
     simp [h1]
@@ -25,7 +44,7 @@ theorem mergeSort_toFinset_eq {α : Type*} [DecidableEq α]
 theorem mergeSort_cons_min {α : Type*} [DecidableEq α] {r : α → α → Prop} [DecidableRel r]
     [IsTotal α r] [IsTrans α r] {x : α} {xs : List α} (h : ∀ y ∈ xs, r x y ∧ ¬r y x) :
     (x :: xs).mergeSort (fun a b ↦ r a b) = x :: xs.mergeSort (fun a b ↦ r a b) := by
-  obtain ⟨l₁, l₂, h1, h2, h3⟩ := List.mergeSort_cons (le := fun a b ↦ decide (r a b))
+  obtain ⟨l₁, l₂, h1, h2, h3⟩ := mergeSort_cons (le := fun a b ↦ decide (r a b))
     (by simp only [decide_eq_true_eq]; intro a b c hab hbc; exact trans_of r hab hbc)
     (by simp [IsTotal.total (r := r)]) x xs
   have hl₁: l₁ = [] := by
@@ -42,10 +61,10 @@ theorem mergeSort_cons_min {α : Type*} [DecidableEq α] {r : α → α → Prop
 theorem mergeSort_cons_max {α : Type*} [DecidableEq α] {r : α → α → Prop} [DecidableRel r]
     [IsTotal α r] [IsTrans α r] {x : α} {xs : List α} (h : ∀ y ∈ xs, r y x ∧ ¬r x y) :
     (x :: xs).mergeSort (fun a b ↦ r a b) = xs.mergeSort (fun a b ↦ r a b) ++ [x] := by
-  obtain ⟨l₁, l₂, h1, h2, h3⟩ := List.mergeSort_cons (le := fun a b ↦ decide (r a b))
+  obtain ⟨l₁, l₂, h1, h2, h3⟩ := mergeSort_cons (le := fun a b ↦ decide (r a b))
       (by simp only [decide_eq_true_eq]; intro a b c hab hbc; exact trans_of r hab hbc)
       (by simp [IsTotal.total (r := r)]) x xs
-  have hp := List.pairwise_mergeSort' r (x :: xs)
+  have hp := pairwise_mergeSort' r (x :: xs)
   rw [h1] at hp
   have hl₂ : l₂ = [] := by
     by_contra hc
@@ -60,24 +79,24 @@ theorem mergeSort_cons_max {α : Type*} [DecidableEq α] {r : α → α → Prop
 
 theorem mergeSort_unique_of_antisymm {α : Type*}
     {r : α → α → Prop} [DecidableRel r] [IsTotal α r] [IsTrans α r]
-    {xs ys : List α} (ha : ∀ x y, x ∈ xs → y ∈ xs → r x y ∧ r y x → x = y) :
-    ys ~ xs → Pairwise r ys → ys = xs.mergeSort (fun a b ↦ r a b) := by
+    {l₁ l₂ : List α} (ha : ∀ x y, x ∈ l₁ → y ∈ l₁ → r x y ∧ r y x → x = y) :
+    l₂ ~ l₁ → Pairwise r l₂ → l₂ = l₁.mergeSort (fun a b ↦ r a b) := by
   intro hy₁ hy₂
-  have hy₁ := Trans.simple hy₁ (xs.mergeSort_perm (fun a b ↦ r a b)).symm
-  refine Perm.eq_of_pairwise (by grind) hy₂ (pairwise_mergeSort' r xs) (by grind)
+  have hy₁ := Trans.simple hy₁ (l₁.mergeSort_perm (fun a b ↦ r a b)).symm
+  refine Perm.eq_of_pairwise (by grind) hy₂ (pairwise_mergeSort' r l₁) (by grind)
 
 theorem mergeSort_max_of_antisymm {α : Type*} [DecidableEq α]
     {r : α → α → Prop} [DecidableRel r] [IsTotal α r] [IsTrans α r]
-    {xs : List α} (hxs : xs ≠ []) (ha : ∀ x y, x ∈ xs → y ∈ xs → r x y ∧ r y x → x = y) :
-    xs.mergeSort (fun a b ↦ r a b) =
-    (xs.erase (xs.maxRel r hxs)).mergeSort (fun a b ↦ r a b) ++ [xs.maxRel r hxs] := by
+    {l₁ : List α} (hl₁ : l₁ ≠ []) (ha : ∀ x y, x ∈ l₁ → y ∈ l₁ → r x y ∧ r y x → x = y) :
+    l₁.mergeSort (fun a b ↦ r a b) =
+    (l₁.erase (l₁.maxRel r hl₁)).mergeSort (fun a b ↦ r a b) ++ [l₁.maxRel r hl₁] := by
   refine (mergeSort_unique_of_antisymm ha ?_ ?_).symm
-  · have h := Trans.simple (perm_cons_erase (xs.maxRel_mem r hxs)) (perm_append_singleton _ _).symm
+  · have h := Trans.simple (perm_cons_erase (l₁.maxRel_mem r hl₁)) (perm_append_singleton _ _).symm
     exact (Trans.simple h (Perm.append_right _ (mergeSort_perm _ (fun a b ↦ r a b))).symm).symm
   · refine pairwise_append.mpr ⟨pairwise_mergeSort' r _, pairwise_singleton r _, ?_⟩
     intro x hx y hy
     rw [mem_singleton] at hy
-    have := maxRel_nle r hxs x (by grind [mem_mergeSort])
+    have := maxRel_nle r hl₁ x (by grind [mem_mergeSort])
     rw [← hy] at this
     cases total_of r x y with
     | inl h' => exact h'
@@ -88,7 +107,7 @@ namespace Greedy
 variable {α : Type*} [DecidableEq α]
 
 /-- Greedily select elements from a list, right to left -/
-def select {α : Type*} [DecidableEq α] (P : Finset α → Prop) [DecidablePred P] : (xs : List α) →
+def select {α : Type*} [DecidableEq α] (P : Finset α → Prop) [DecidablePred P] : (l : List α) →
   List α
   | [] => []
   | x :: xs =>
@@ -129,23 +148,23 @@ theorem select_cons_neg {P : Finset α → Prop} [DecidablePred P] {x : α} {xs 
     (hP : ¬(P (insert x (select P xs).toFinset))) : select P (x :: xs) = select P xs := by
   simp [select, hP]
 
-theorem select_sublist {P : Finset α → Prop} [DecidablePred P] {xs : List α} :
-  select P xs <+ xs := by
-  induction xs with
+theorem select_sublist {P : Finset α → Prop} [DecidablePred P] {l : List α} :
+  select P l <+ l := by
+  induction l with
   | nil => simp [select]
   | cons x xs ih =>
     simp only [select]
     by_cases hP : P (insert x (select P xs).toFinset) <;> simp [hP, ih]
 
-theorem select_sublist_succ {P : Finset α → Prop} [DecidablePred P] {xs : List α} {n : ℕ} :
-    select P (xs.rtake n) <+ select P (xs.rtake (n + 1)) := by
-  by_cases hn : n < xs.length
+theorem select_sublist_succ {P : Finset α → Prop} [DecidablePred P] {l : List α} {n : ℕ} :
+    select P (l.rtake n) <+ select P (l.rtake (n + 1)) := by
+  by_cases hn : n < l.length
   · simp only [rtake_eq_getElem_cons' hn, select]
-    by_cases hP : P (insert xs[xs.length - 1 - n] (select P (xs.rtake n)).toFinset) <;> simp [hP]
-  · simp [rtake.eq_1, show xs.length - n = xs.length - (n + 1) by omega]
+    by_cases hP : P (insert l[l.length - 1 - n] (select P (l.rtake n)).toFinset) <;> simp [hP]
+  · simp [rtake.eq_1, show l.length - n = l.length - (n + 1) by omega]
 
-theorem select_monotone {P : Finset α → Prop} [DecidablePred P] {xs : List α} {n m : ℕ}
-    (hmn : m ≤ n) : select P (xs.rtake m) <+ select P (xs.rtake n) := by
+theorem select_monotone {P : Finset α → Prop} [DecidablePred P] {l : List α} {n m : ℕ}
+    (hmn : m ≤ n) : select P (l.rtake m) <+ select P (l.rtake n) := by
   induction n with
   | zero => simp [nonpos_iff_eq_zero.mp hmn]
   | succ n ih =>
@@ -153,9 +172,9 @@ theorem select_monotone {P : Finset α → Prop} [DecidablePred P] {xs : List α
     · simp [hmn']
     · exact Sublist.trans (ih (by omega)) (select_sublist_succ)
 
-theorem select_sublist' {P : Finset α → Prop} [DecidablePred P] {xs : List α} (n : ℕ) :
-    select P (xs.rtake n) <+ select P xs := by
-  by_cases hn : n ≤ xs.length
+theorem select_sublist' {P : Finset α → Prop} [DecidablePred P] {l : List α} (n : ℕ) :
+    select P (l.rtake n) <+ select P l := by
+  by_cases hn : n ≤ l.length
   · exact Sublist.trans (select_monotone hn) (by rw [rtake_length])
   · rw [rtake_of_length_le (le_of_lt (Nat.not_le.mp hn))]
 
@@ -164,14 +183,14 @@ theorem select_monotone' {P : Finset α → Prop} [DecidablePred P] (l₁ l₂ :
   nth_rw 1 [← rtake_right' (show l₂.length = l₂.length by rfl)]
   refine select_sublist' l₂.length
 
-theorem select_sublist_cons {P : Finset α → Prop} [DecidablePred P] {xs : List α} (h : xs ≠ []) :
-    select P xs <+ xs.head h :: select P xs.tail := by
+theorem select_sublist_cons {P : Finset α → Prop} [DecidablePred P] {l : List α} (h : l ≠ []) :
+    select P l <+ l.head h :: select P l.tail := by
   nth_rw 1 [← cons_head_tail h, select.eq_2]
-  by_cases hP : P (insert (xs.head h) (select P xs.tail).toFinset) <;> simp [hP]
+  by_cases hP : P (insert (l.head h) (select P l.tail).toFinset) <;> simp [hP]
 
-theorem select_xs_sublist {P : Finset α → Prop} [DecidablePred P] {xs : List α} (n : ℕ) :
-    select P xs <+ xs.take (xs.length - n) ++ select P (xs.rtake n) := by
-  induction xs with
+theorem select_sublist_append {P : Finset α → Prop} [DecidablePred P] {l : List α} (n : ℕ) :
+    select P l <+ l.take (l.length - n) ++ select P (l.rtake n) := by
+  induction l with
   | nil => simp
   | cons x xs ih =>
     by_cases hn : xs.length < n
@@ -189,48 +208,48 @@ theorem select_append_sublist {P : Finset α → Prop} [DecidablePred P] {l₁ l
     select P (l₁ ++ l₂) <+ l₁ ++ select P l₂ := by
   nth_rw 2 [← rtake_right' (show l₂.length = l₂.length by rfl)]
   · nth_rw 2 [← take_left' (show l₁.length = (l₁ ++ l₂).length - l₂.length by simp)]
-    refine select_xs_sublist (P := P) _
+    refine select_sublist_append (P := P) _
 
-theorem select_mem_of_P {P : Finset α → Prop} [DecidablePred P] {xs : List α} {n : ℕ}
-    (hn : n < xs.length)
-    (hP : P (insert xs[n] (select P (xs.rtake (xs.length - n - 1))).toFinset)) :
-    xs[n] ∈ select P xs := by
-  apply Sublist.mem ?_ (select_sublist' (xs.length - n - 1 + 1))
-  have : xs.length - 1 - (xs.length - n - 1) = n := by omega
+theorem select_mem_of_P {P : Finset α → Prop} [DecidablePred P] {l : List α} {n : ℕ}
+    (hn : n < l.length)
+    (hP : P (insert l[n] (select P (l.rtake (l.length - n - 1))).toFinset)) :
+    l[n] ∈ select P l := by
+  apply Sublist.mem ?_ (select_sublist' (l.length - n - 1 + 1))
+  have : l.length - 1 - (l.length - n - 1) = n := by omega
   rw [rtake_eq_getElem_cons' <| by omega, select.eq_2, if_pos ?_]
   · simp [this]
   · simp [this, hP]
 
-theorem select_of_not_mem {P : Finset α → Prop} [DecidablePred P] {x : α} {xs : List α} {n : ℕ}
-    (h : x ∉ select P xs) : x ∉ select P (xs.rtake n) := by
+theorem select_of_not_mem {P : Finset α → Prop} [DecidablePred P] {x : α} {l : List α} {n : ℕ}
+    (h : x ∉ select P l) : x ∉ select P (l.rtake n) := by
   by_contra hc
   grind [select_sublist']
 
-theorem select_ex_P_of_mem {P : Finset α → Prop} [DecidablePred P] {xs : List α} {x : α}
-    (h : x ∈ select P xs) :
-    ∃ n : ℕ, ∃ hn : n < xs.length, x = xs[n] ∧
-    P (insert xs[n] (select P (xs.rtake (xs.length - n - 1))).toFinset) := by
+theorem select_ex_P_of_mem {P : Finset α → Prop} [DecidablePred P] {l : List α} {x : α}
+    (h : x ∈ select P l) :
+    ∃ n : ℕ, ∃ hn : n < l.length, x = l[n] ∧
+    P (insert l[n] (select P (l.rtake (l.length - n - 1))).toFinset) := by
   by_contra hc
   simp only [not_exists, not_and] at hc
-  have : ∀ m : ℕ, m ≤ xs.length → x ∉ select P (xs.rtake m) := by
+  have : ∀ m : ℕ, m ≤ l.length → x ∉ select P (l.rtake m) := by
     intro m hm; induction m with
     | zero => simp
     | succ m ih =>
       rw [rtake_eq_getElem_cons' (by omega), select.eq_2]
-      by_cases hmx : x = xs[xs.length - 1 - m]
-      · have := hc (xs.length - 1 - m) (by omega) hmx
-        rw [show xs.length - (xs.length - 1 - m) - 1 = m by omega] at this
+      by_cases hmx : x = l[l.length - 1 - m]
+      · have := hc (l.length - 1 - m) (by omega) hmx
+        rw [show l.length - (l.length - 1 - m) - 1 = m by omega] at this
         rw [if_neg (by simp[this])]
         exact (ih (Nat.le_of_succ_le hm))
-      · by_cases hP : P (insert xs[xs.length - 1 - m] (select P (xs.rtake m)).toFinset)
+      · by_cases hP : P (insert l[l.length - 1 - m] (select P (l.rtake m)).toFinset)
         <;> simp [hP, hmx, ih (Nat.le_of_succ_le hm)]
-  specialize this xs.length (by omega)
+  specialize this l.length (by omega)
   rw [rtake_length] at this
   contradiction
 
-theorem select_iff {P : Finset α → Prop} [DecidablePred P] {xs : List α}
-    {hl : List.Nodup xs} {n : ℕ} (hn : n < xs.length) :
-    xs[n] ∈ select P xs ↔ P (insert xs[n] (select P (xs.rtake (xs.length - n - 1))).toFinset)
+theorem select_iff {P : Finset α → Prop} [DecidablePred P] {l : List α}
+    {hl : Nodup l} {n : ℕ} (hn : n < l.length) :
+    l[n] ∈ select P l ↔ P (insert l[n] (select P (l.rtake (l.length - n - 1))).toFinset)
     := by
   constructor
   · intro h
@@ -240,13 +259,13 @@ theorem select_iff {P : Finset α → Prop} [DecidablePred P] {xs : List α}
   · intro h
     exact select_mem_of_P hn h
 
-theorem select_last {P : Finset α → Prop} [DecidablePred P] {x : α} {xs : List α} :
+theorem select_last {P : Finset α → Prop} [DecidablePred P] {x : α} {l : List α} :
     if P {x} then
-      select P (xs ++ [x]) = (select (fun s ↦ P (s ∪ {x})) xs) ++ [x]
+      select P (l ++ [x]) = (select (fun s ↦ P (s ∪ {x})) l) ++ [x]
     else
-      select P (xs ++ [x]) = select P xs
+      select P (l ++ [x]) = select P l
     := by
-  induction xs with
+  induction l with
   | nil => simp [select]
   | cons y ys ih =>
     by_cases hP₁ : P {x}
@@ -267,63 +286,63 @@ theorem select_last {P : Finset α → Prop} [DecidablePred P] {x : α} {xs : Li
       · rw [select_cons_neg hP₂, ih, select_cons_neg (by grind)]
 
 def selectRel (P : Finset α → Prop) [DecidablePred P] (r : α → α → Prop) [DecidableRel r]
-    [IsTotal α r] [IsTrans α r] (xs : List α) :
-    List α := Greedy.select P (xs.mergeSort (fun x y ↦ r x y))
+    [IsTotal α r] [IsTrans α r] (l : List α) :
+    List α := Greedy.select P (l.mergeSort (fun x y ↦ r x y))
 
 @[simp] theorem selectRel_nil (P : Finset α → Prop) [DecidablePred P]
     (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r] : selectRel P r [] = [] := by
   simp [selectRel]
 
 theorem selectRel_cons_min (P : Finset α → Prop) [DecidablePred P]
-    (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r] {x : α} {xs : List α}
-    (h : ∀ y ∈ xs, r x y ∧ ¬r y x) :
-    if P (insert x (selectRel P r xs).toFinset) then
-      selectRel P r (x :: xs) = x :: selectRel P r xs
+    (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r] {x : α} {l : List α}
+    (h : ∀ y ∈ l, r x y ∧ ¬r y x) :
+    if P (insert x (selectRel P r l).toFinset) then
+      selectRel P r (x :: l) = x :: selectRel P r l
     else
-      selectRel P r (x :: xs) = selectRel P r xs
+      selectRel P r (x :: l) = selectRel P r l
     := by
   simp [selectRel, mergeSort_cons_min h, Greedy.select]
 
 theorem selectRel_cons_max {P : Finset α → Prop} [DecidablePred P]
     {r : α → α → Prop} [DecidableRel r] [IsTotal α r] [IsTrans α r]
-    {x : α} {xs : List α} (h : ∀ y ∈ xs, r y x ∧ ¬r x y) :
+    {x : α} {l : List α} (h : ∀ y ∈ l, r y x ∧ ¬r x y) :
     if P {x} then
-      selectRel P r (x :: xs) = selectRel (fun s ↦ P (s ∪ {x})) r xs ++ [x]
+      selectRel P r (x :: l) = selectRel (fun s ↦ P (s ∪ {x})) r l ++ [x]
     else
-      selectRel P r (x :: xs) = selectRel P r xs
+      selectRel P r (x :: l) = selectRel P r l
     := by
   grind [selectRel, mergeSort_cons_max, select_last]
 
 theorem selectRel_pairwise (P : Finset α → Prop) [DecidablePred P]
-    (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r] (xs : List α) :
-    Pairwise r (selectRel P r xs) := by
+    (r : α → α → Prop) [DecidableRel r] [IsTotal α r] [IsTrans α r] (l : List α) :
+    Pairwise r (selectRel P r l) := by
   unfold selectRel
-  refine List.Pairwise.sublist Greedy.select_sublist ?_
-  exact List.pairwise_mergeSort' r xs
+  refine Pairwise.sublist select_sublist ?_
+  exact pairwise_mergeSort' r l
 
 theorem selectRel_max_of_antisymm
     {P : Finset α → Prop} [DecidablePred P]
     {r : α → α → Prop} [DecidableRel r] [IsTotal α r] [IsTrans α r]
-    {xs : List α} (hxs₁ : xs ≠ []) (hxs₂ : xs.Nodup)
-    (ha : ∀ x y, x ∈ xs → y ∈ xs → r x y ∧ r y x → x = y) :
-    let x := xs.maxRel r hxs₁
+    {l : List α} (hl₁ : l ≠ []) (hl₂ : l.Nodup)
+    (ha : ∀ x y, x ∈ l → y ∈ l → r x y ∧ r y x → x = y) :
+    let x := l.maxRel r hl₁
     if P {x} then
-      selectRel P r xs = selectRel (fun s ↦ P (s ∪ {x})) r (xs.erase x) ++ [x]
+      selectRel P r l = selectRel (fun s ↦ P (s ∪ {x})) r (l.erase x) ++ [x]
     else
-      selectRel P r xs = selectRel P r (xs.erase x)
+      selectRel P r l = selectRel P r (l.erase x)
     := by
-  set x := xs.maxRel r hxs₁ with hx
-  have h := calc  (x :: (xs.erase x)).mergeSort (fun a b ↦ r a b)
-    _ ~ x :: (xs.erase x) := mergeSort_perm (x :: xs.erase x) fun a b ↦ decide (r a b)
-    _ ~ xs                := (perm_cons_erase (xs.maxRel_mem r hxs₁)).symm
+  set x := l.maxRel r hl₁ with hx
+  have h := calc  (x :: (l.erase x)).mergeSort (fun a b ↦ r a b)
+    _ ~ x :: (l.erase x) := mergeSort_perm (x :: l.erase x) fun a b ↦ decide (r a b)
+    _ ~ l                := (perm_cons_erase (l.maxRel_mem r hl₁)).symm
   simp only [selectRel]
   rw [← mergeSort_unique_of_antisymm ha h (pairwise_mergeSort' r _)]
   simp only [← selectRel.eq_1]
   refine selectRel_cons_max ?_
   intro y hy
-  have hy' : x ≠ y := by by_contra hc; rw [hc] at hy; exact (Nodup.not_mem_erase hxs₂) hy
-  have h₀ := ha x y (maxRel_mem r hxs₁) (mem_of_mem_erase hy)
-  have h₁ := maxRel_nle r hxs₁ y (mem_of_mem_erase hy)
+  have hy' : x ≠ y := by by_contra hc; rw [hc] at hy; exact (Nodup.not_mem_erase hl₂) hy
+  have h₀ := ha x y (maxRel_mem r hl₁) (mem_of_mem_erase hy)
+  have h₁ := maxRel_nle r hl₁ y (mem_of_mem_erase hy)
   rw [← hx] at h₁
   cases total_of r x y with
   | inl h₂ => grind

@@ -5,6 +5,22 @@ import Mathlib.Logic.Encodable.Basic
 import Mathlib.Logic.Equiv.List
 import Mathlib.Tactic.Order
 
+/-!
+# LinearOrder on a encodable type from a weight function and weights of finite sets
+
+## Main Definitions
+
+* `weight c X` gives the sum of weights `c` of the finite set `X`
+
+* `weightRel c` uses `Order.preimage` to get a transitive and total relation from the weights `c`
+
+* `rel_of_encodable_of_rel r` ensures antisymmetry of the relation `r` using tie-breaking with the
+  encoding of the domain.
+
+* `weightRel c'` is `weightRel c` with ties broken. True for elements `a` and `b` if and only if
+  `b` has larger weight or the same weight and its position in the encoding is at least that of `a`
+-/
+
 def weight {α β : Type*} [AddCommMonoid β] (c : α → β) (X : Finset α) : β := Finset.sum X c
 
 lemma weight_of_union {α β : Type*} [DecidableEq α] [AddCommMonoid β] (c : α → β) {X Y : Finset α}
