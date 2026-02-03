@@ -3,6 +3,20 @@ import Mathlib.Combinatorics.Matroid.IndepAxioms
 
 import FormalMatroidOptimization.FinMatroid.Basic
 
+/-!
+# Bases of finite Matroids
+
+## Main Definitions / Proofs
+
+* `IsFinBase F` Bases for the independence system `F` are maximal independent sets.
+
+* `IsFinBase_iff_IsBase M B` A set `B` is a base of a FinMatroid `M` if and only if it is a base of
+  the Mathlib matroid induced by `M`.
+
+* `IsFinBase_eq F I` Alternative characterization of the base oracle of the independence system `F`,
+  which is decidable.
+-/
+
 def IsFinBase {α : Type*} [DecidableEq α] (F : IndepSystem α) :=
   Maximal (F.Indep)
 

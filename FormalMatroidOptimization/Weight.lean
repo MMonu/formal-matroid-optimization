@@ -8,7 +8,7 @@ import Mathlib.Tactic.Order
 /-!
 # LinearOrder on a encodable type from a weight function and weights of finite sets
 
-## Main Definitions
+## Main Definitions / Proofs
 
 * `weight c X` gives the sum of weights `c` of the finite set `X`
 

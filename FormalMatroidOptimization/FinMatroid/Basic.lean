@@ -1,6 +1,34 @@
 import Mathlib.Combinatorics.Matroid.Basic
 import Mathlib.Combinatorics.Matroid.IndepAxioms
 
+/-!
+# Definition of finite Matroids and Independence Systems
+
+The motivation to define finite matroids separately to the matroids in Mathlib is three-fold:
+1. This allows them to be explicit extensions of independence systems,
+2. Using Finset, allows easier reasoning and proofs, for example, that the greedy algorithm
+   terminates
+3. We can add `indep_dec` that the independence oracle is decidable, which is what allows the
+   greedy algorithm to be well-defined.
+
+## Implementation Details
+
+Similar to the implementation of matroids in Mathlib, we define the independence predicate not only
+on subsets of the ground set. Rather they are defined on all Finset of the underlying type, and a
+proof `subset_ground`, that only subsets of the ground set are independent.
+
+## Main Definitions / Theorems
+
+* `IndepSystem` A finite ground set and a collection of subsets, the independent sets, given by an
+  independence oracle, such that the empty set is independent and independence is hereditary.
+
+* `FinMatroid` A `IndepSystem` such that the collection of independence sets have the augmentation
+  property.
+
+* `FinMatroid.toMatroid` A `FinMatroid` defines a Mathlib `Matroid`.
+
+-/
+
 def IndepSystem.HereditaryProperty {α : Type*} (P : Finset α → Prop) : Prop :=
   ∀ ⦃X Y⦄, P X → Y ⊆ X → P Y
 

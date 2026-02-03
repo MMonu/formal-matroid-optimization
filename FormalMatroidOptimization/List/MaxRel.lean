@@ -6,7 +6,7 @@ import Mathlib.Data.List.Basic
 Generalizes `List.max`. For the most parts the theorems and proofs are modified versions of their
 counterparts for `List.max`.
 
-## Main Definitions
+## Main Definitions / Proofs
 
 * `maxRel r` gives a two-argument function such that maps a b to a or b, such that
   r c (maxRel r a b) is fulfilled for c = a and c = b respectively.

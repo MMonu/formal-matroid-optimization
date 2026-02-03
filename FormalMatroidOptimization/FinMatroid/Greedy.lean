@@ -9,6 +9,30 @@ import FormalMatroidOptimization.List.Greedy
 import FormalMatroidOptimization.Weight
 import Mathlib.Order.Minimal
 
+/-!
+# Greedy selection on weighted matroid
+
+## Implementation Details
+
+The greedy selection is defined using `Greedy.selectRel` that is, each iteration a element of
+minimum weight is considered. However, the proofs also use the greedy selectio on lists.
+
+## Main Definitions / Proofs
+
+* `greedy F c` Greedy selection used on the independence system `F` with order given by weight `c`,
+  with tie-breaking given by the encoding domain of `F`
+
+* `greedy_max_weight M c` The set given by the greedy algorithm is a base of the finite matroid `M`
+  with maximum weight, with respect to `c`
+
+* `Matroid_of_greedy F h` An independence system `F` is a matroid if the greedy algorithm gives a
+  maximum weight base for every weight function, as attested to by `h`
+
+* `Motroid_iff_greedy F` An independence system `F` is a matroid if and only if the greedy algorithm
+  gives a maximum weight base for every weight function.
+
+-/
+
 open List Finset Encodable
 
 namespace FinMatroid
@@ -332,12 +356,12 @@ theorem greedy_max_weight {α β : Type*} [Encodable α] [LinearOrder β] [AddCo
         simp only [greedy, hsel_eq, ← hmy] at hy_ning
         exact hy_ning
       obtain ⟨ng, hng, hngx⟩ := getElem_of_mem hx_ing
-      have hxlg_eq := List.Greedy.select_iff (P := M.Indep) (xs := lg)
+      have hxlg_eq := List.Greedy.select_iff (P := M.Indep) (l := lg)
           (hl := nodup_mergeSort.mpr hxs) (n := n) hn
-      have hylg_eq := List.Greedy.select_iff (P := M.Indep) (xs := lg)
+      have hylg_eq := List.Greedy.select_iff (P := M.Indep) (l := lg)
           (hl := nodup_mergeSort.mpr hxs) (n := m) hm
       have hxB := hxlg_eq.mp hx_ing'
-      have hxyB := List.Greedy.select_monotone (P := M.Indep) (xs := lg) hnm'
+      have hxyB := List.Greedy.select_monotone (P := M.Indep) (l := lg) hnm'
       set B_x := (List.Greedy.select M.Indep (lg.rtake (lg.length - n - 1))) with hB_x
       set B_y := (List.Greedy.select M.Indep (lg.rtake (lg.length - m - 1))) with hB_y
 --

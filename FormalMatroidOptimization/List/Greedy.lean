@@ -3,8 +3,8 @@ import Mathlib.Data.List.DropRight
 import Mathlib.Data.List.TakeDrop
 import Mathlib.Data.List.Sublists
 
-import FormalMatroidOptimization.List.Rtake
 import FormalMatroidOptimization.FinMatroid.Basic
+import FormalMatroidOptimization.List.Rtake
 import FormalMatroidOptimization.List.MaxRel
 
 /-!
@@ -14,7 +14,7 @@ import FormalMatroidOptimization.List.MaxRel
 
 Due to the implemenation of lists in Lean, the elements are considered from right to left.
 
-## Main Definitions
+## Main Definitions / Theorems
 
 * `List.Greedy.select P l` Greedy select elements of the list `l` from right to left, based on the
   predicate `P`.

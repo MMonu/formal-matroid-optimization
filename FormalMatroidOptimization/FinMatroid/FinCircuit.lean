@@ -4,6 +4,17 @@ import Mathlib.Combinatorics.Matroid.Circuit
 
 import FormalMatroidOptimization.FinMatroid.Basic
 
+/-!
+# Circuits of finite Matroids
+
+## Main Definitions / Proofs
+
+* `FinDep M` Dependents sets of a finite matroid `M` are subsets of the ground set, that are not
+  independent.
+
+* `IsFinCircuit M` Circuits of a finite matroid `M` are minimal dependent sets.
+-/
+
 def FinDep {α : Type*} [DecidableEq α] (M : FinMatroid α) (D : Finset α) :
   Prop := ¬M.Indep D ∧ D ⊆ M.E
 
