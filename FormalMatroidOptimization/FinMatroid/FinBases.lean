@@ -1,7 +1,9 @@
 import Mathlib.Combinatorics.Matroid.Basic
 import Mathlib.Combinatorics.Matroid.IndepAxioms
+import Mathlib.Data.Finset.Basic
 
 import FormalMatroidOptimization.FinMatroid.Basic
+import FormalMatroidOptimization.FinMatroid.FinCircuit
 
 /-!
 # Bases of finite Matroids
@@ -78,3 +80,49 @@ instance {α : Type*} [DecidableEq α] {F : IndepSystem α} : DecidablePred (IsF
   intro I
   rw [IsFinBase_eq F I]
   infer_instance
+
+open Finset
+
+lemma FinBases_notsub {α : Type*} [DecidableEq α] {M : FinMatroid α} {X X' : Finset α}
+    (hX : IsFinBase M X) (hX' : IsFinBase M X') (hneq : X ≠ X') : ∃ x, x ∈ X \ X' := by
+  have hnX : ¬ X ⊆ X' := by
+    by_contra hc
+    have := Finset.Subset.antisymm hc ((le_iff_subset).mp (hX.2 hX'.1 hc))
+    contradiction
+  refine nonempty_def.mp ?_
+  exact sdiff_nonempty.mpr hnX
+
+lemma FinCircuit_ex_mem_nin_FinBase {α : Type*} [DecidableEq α] {M : FinMatroid α} {B C : Finset α}
+    (hB : IsFinBase M B) (hC : IsFinCircuit M C) : ∃ e, e ∈ C \ B := by
+  by_contra
+  have : C ⊆ B := by simp_all; grind
+  grind only [FinDep, M.indep_subset hB.1, hC.1]
+
+lemma FinBase_mem_insert_circuit_mem {α : Type*} [DecidableEq α] {M : FinMatroid α} {e : α}
+    {B C : Finset α} (hB : IsFinBase M B) (hC : IsFinCircuit M C) (hCB : C ⊆ (insert e B)) :
+    e ∈ C \ B := by
+  grind only [FinDep, subset_iff, insert_eq_of_mem, mem_sdiff, mem_insert,
+    M.indep_subset hB.1, hC.1]
+
+lemma FinBase_mem_insert_circuit {α : Type*} [DecidableEq α] {M : FinMatroid α} {e : α}
+    {B : Finset α} (hB : IsFinBase M B) (he : e ∈ M.E \ B) :
+    ∃ C ⊆ (insert e B), IsFinCircuit M C ∧ e ∈ C \ B := by
+  have he' : e ∈ M.toMatroid.E \ B := by
+    rw [Set.mem_diff]
+    rwa [mem_sdiff] at he
+  have hBe_dep : FinDep M (insert e B) := by
+    refine (FinDep_iff_Dep M (insert e B)).mpr ?_
+    rw [coe_insert]
+    exact Matroid.IsBase.insert_dep ((IsFinBase_iff_IsBase M B).mp hB) he'
+  grind only [FinBase_mem_insert_circuit_mem, FinDep_exists_FinCircuit_subset hBe_dep]
+
+lemma FinBase_exchange_mem_circuit_Finbase {α : Type*} [DecidableEq α] {M : FinMatroid α}
+    {b e : α} {B C : Finset α} (hB : IsFinBase M B) (hC : IsFinCircuit M C) (heB : e ∈ C \ B)
+    (hCe : C ⊆ (insert e B)) (hb : b ∈ C \ {e}) : IsFinBase M (insert e B \ {b}) := by
+  have hI := FinIndep_exchange_mem_circuit_FinIndep (f := b) (I := B) (hB.1) (hC) (heB) (hCe) (hb)
+  have hI' := by simpa [coe_sdiff, coe_insert, coe_singleton] using
+    ((FinIndep_iff_Indep M (insert e B \ {b})).mp hI)
+  have := Matroid.IsBase.exchange_isBase_of_indep' (M := M.toMatroid)
+    ((IsFinBase_iff_IsBase M B).mp hB) (by grind) (by grind) hI'
+  rw [← coe_insert, ← coe_singleton, ← coe_sdiff] at this
+  exact (IsFinBase_iff_IsBase M (insert e B \ {b})).mpr this
